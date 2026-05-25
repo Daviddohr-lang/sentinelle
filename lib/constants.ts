@@ -17,6 +17,9 @@ import {
 
 export const APP_NAME = "SENTINELLE";
 
+export const SECURITY_COMPANY_LEGAL_NOTICE =
+  "Article L612-14 du CSI : L'autorisation d'exercice ne confère aucune prérogative de puissance publique à l'entreprise ou aux personnes qui en bénéficient.";
+
 export const roleLabels = {
   SUPER_ADMIN: "Super administrateur plateforme",
   COMPANY_ADMIN: "Administrateur entreprise",

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiError, apiOk, requireApiUser } from "@/lib/api";
+import { SECURITY_COMPANY_LEGAL_NOTICE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -11,6 +12,9 @@ const schema = z.object({
   siret: z.string().optional(),
   cnapsAuthorizationNumber: z.string().optional(),
   address: z.string().optional(),
+  phone: z.string().optional(),
+  website: z.string().optional(),
+  legalNotice: z.string().optional(),
   logoUrl: z.string().optional()
 });
 
@@ -35,6 +39,9 @@ export async function POST(request: NextRequest) {
       siret: parsed.data.siret,
       cnapsAuthorizationNumber: parsed.data.cnapsAuthorizationNumber,
       address: parsed.data.address,
+      phone: parsed.data.phone,
+      website: parsed.data.website,
+      legalNotice: parsed.data.legalNotice ?? SECURITY_COMPANY_LEGAL_NOTICE,
       logoUrl: parsed.data.logoUrl
     }
   });
@@ -57,6 +64,9 @@ export async function PATCH(request: NextRequest) {
       siret: parsed.data.siret,
       cnapsAuthorizationNumber: parsed.data.cnapsAuthorizationNumber,
       address: parsed.data.address,
+      phone: parsed.data.phone,
+      website: parsed.data.website,
+      legalNotice: parsed.data.legalNotice ?? SECURITY_COMPANY_LEGAL_NOTICE,
       logoUrl: parsed.data.logoUrl
     }
   });

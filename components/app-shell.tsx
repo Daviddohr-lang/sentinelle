@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, Shield, X } from "lucide-react";
+import { Building2, ExternalLink, LogOut, Menu, Shield, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import type { SessionUser } from "@/lib/auth";
+import type { ShellCompanyProfile } from "@/lib/company-profile";
 import { APP_NAME, navItems, roleLabels } from "@/lib/constants";
 import { cn, initials } from "@/lib/utils";
 import { OfflineBanner } from "@/components/offline-banner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GlobalSearch } from "@/components/global-search";
 
-export function AppShell({ user, children }: { user: SessionUser; children: ReactNode }) {
+export function AppShell({ user, companyProfile, children }: { user: SessionUser; companyProfile: ShellCompanyProfile; children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -33,13 +34,53 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
 
   const sidebar = (
     <aside className="flex h-full w-72 flex-col border-r border-ink-200 bg-white dark:border-white/10 dark:bg-ink-950">
-      <div className="flex h-16 items-center gap-3 border-b border-ink-200 px-5 dark:border-white/10">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink-950 text-white dark:bg-sentinel-500">
-          <Shield className="h-5 w-5" />
-        </span>
-        <div>
-          <p className="text-sm font-bold tracking-normal text-ink-950 dark:text-white">{APP_NAME}</p>
-          <p className="text-xs text-ink-500 dark:text-ink-300">Qualite & conformite</p>
+      <div className="border-b border-ink-200 p-4 dark:border-white/10">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink-950 text-white dark:bg-sentinel-500">
+            <Shield className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-sm font-bold tracking-normal text-ink-950 dark:text-white">{APP_NAME}</p>
+            <p className="text-xs text-ink-500 dark:text-ink-300">Qualite & conformite</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-ink-200 bg-ink-50 p-3 dark:border-white/10 dark:bg-white/5">
+          <div className="flex items-start gap-3">
+            {companyProfile.logoUrl ? (
+              <span
+                className="h-12 w-12 shrink-0 rounded-lg bg-white bg-cover bg-center ring-1 ring-ink-200 dark:bg-ink-950 dark:ring-white/10"
+                style={{ backgroundImage: `url(${companyProfile.logoUrl})` }}
+                role="img"
+                aria-label={`Logo ${companyProfile.name}`}
+              />
+            ) : (
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white text-sentinel-700 ring-1 ring-ink-200 dark:bg-ink-950 dark:text-sentinel-100 dark:ring-white/10">
+                <Building2 className="h-5 w-5" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-ink-950 dark:text-white">{companyProfile.name}</p>
+              <p className="mt-1 text-[11px] leading-4 text-ink-500 dark:text-ink-300">
+                SIRET {companyProfile.siret ?? "non renseigne"}
+                <br />
+                CNAPS {companyProfile.cnapsAuthorizationNumber ?? "non renseigne"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-1 text-[11px] leading-4 text-ink-600 dark:text-ink-300">
+            {companyProfile.address ? <p>{companyProfile.address}</p> : null}
+            {companyProfile.phone ? <p>{companyProfile.phone}</p> : null}
+            {companyProfile.website ? (
+              <a href={companyProfile.website} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 truncate font-semibold text-sentinel-800 dark:text-sentinel-100">
+                <span className="truncate">{companyProfile.website.replace(/^https?:\/\//, "")}</span>
+                <ExternalLink className="h-3 w-3 shrink-0" />
+              </a>
+            ) : null}
+          </div>
+
+          <p className="mt-3 border-t border-ink-200 pt-2 text-[10px] leading-4 text-ink-500 dark:border-white/10 dark:text-ink-400">{companyProfile.legalNotice}</p>
         </div>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">

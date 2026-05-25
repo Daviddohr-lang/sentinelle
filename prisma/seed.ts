@@ -1,5 +1,6 @@
 import { PrismaClient, Role } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { SECURITY_COMPANY_LEGAL_NOTICE } from "../lib/constants";
 
 const prisma = new PrismaClient();
 const password = "Sentinelle2026!";
@@ -46,6 +47,9 @@ async function main() {
       siret: "81234567800029",
       cnapsAuthorizationNumber: "AUT-080-2026-0001",
       address: "12 rue de la Conformite, 80000 Amiens",
+      phone: "03 22 00 00 00",
+      website: "https://ops-securite-nord.example",
+      legalNotice: SECURITY_COMPANY_LEGAL_NOTICE,
       settings: {
         darkModeDefault: false,
         documentExpiryAlertMonths: 4,

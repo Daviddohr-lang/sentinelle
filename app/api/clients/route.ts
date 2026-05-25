@@ -5,6 +5,7 @@ import { archiveLocalClient, createLocalClient, listLocalClients, LocalStoreErro
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
+  companyId: z.string().optional(),
   name: z.string().min(2),
   reference: z.string().min(2),
   contactName: z.string().optional(),
@@ -12,6 +13,14 @@ const schema = z.object({
   contactPhone: z.string().optional(),
   address: z.string().optional()
 });
+
+async function resolveWritableCompanyId(userCompanyId: string | null, role: string, requestedCompanyId?: string | null) {
+  if (userCompanyId) return userCompanyId;
+  if (role !== "SUPER_ADMIN") return null;
+  if (requestedCompanyId) return requestedCompanyId;
+  const company = await prisma.company.findFirst({ where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" }, select: { id: true } });
+  return company?.id ?? null;
+}
 
 export async function GET(request: NextRequest) {
   const context = await requireApiUser(request, "controls.read");
@@ -32,17 +41,19 @@ export async function POST(request: NextRequest) {
   if (!context.user.companyId && context.user.role !== "SUPER_ADMIN") return apiError("Entreprise requise", 400);
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return apiError("Client invalide", 400, parsed.error.flatten());
-  const companyId = request.nextUrl.searchParams.get("companyId") ?? context.user.companyId;
-  if (!companyId) return apiError("Entreprise requise", 400);
+  const { companyId: bodyCompanyId, ...data } = parsed.data;
+  const requestedCompanyId = request.nextUrl.searchParams.get("companyId") ?? bodyCompanyId;
 
   return withDatabaseFallback(
     async () => {
-      const client = await prisma.client.create({ data: { ...parsed.data, companyId } });
+      const companyId = await resolveWritableCompanyId(context.user.companyId, context.user.role, requestedCompanyId);
+      if (!companyId) return apiError("Entreprise requise", 400);
+      const client = await prisma.client.create({ data: { ...data, companyId } });
       return apiOk({ client }, { status: 201 });
     },
     async () => {
       try {
-        const client = await createLocalClient(context.user, parsed.data, companyId);
+        const client = await createLocalClient(context.user, data, requestedCompanyId);
         return apiOk({ client }, { status: 201 });
       } catch (error) {
         if (error instanceof LocalStoreError) return apiError(error.message, error.status);

@@ -1,4 +1,5 @@
 import type { Role } from "@prisma/client";
+import { SECURITY_COMPANY_LEGAL_NOTICE } from "@/lib/constants";
 
 export const demoCompany = {
   id: "cmp_ops_nord",
@@ -7,7 +8,10 @@ export const demoCompany = {
   logoUrl: null,
   cnapsAuthorizationNumber: "AUT-080-2026-0001",
   siret: "81234567800029",
-  address: "12 rue de la Conformite, 80000 Amiens"
+  address: "12 rue de la Conformite, 80000 Amiens",
+  phone: "03 22 00 00 00",
+  website: "https://ops-securite-nord.example",
+  legalNotice: SECURITY_COMPANY_LEGAL_NOTICE
 };
 
 export const demoUsers = [

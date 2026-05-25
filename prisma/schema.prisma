@@ -201,6 +201,9 @@ model Company {
   siret                    String?
   cnapsAuthorizationNumber String?
   address                  String?
+  phone                    String?
+  website                  String?
+  legalNotice              String?
   status                   CompanyStatus           @default(ACTIVE)
   settings                 Json?
   createdAt                DateTime                @default(now())
