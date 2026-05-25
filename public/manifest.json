@@ -1,0 +1,18 @@
+{
+  "name": "SENTINELLE",
+  "short_name": "SENTINELLE",
+  "description": "Controle qualite, conformite et audit terrain pour entreprises de securite privee.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111722",
+  "theme_color": "#124740",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

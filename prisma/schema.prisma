@@ -1,0 +1,802 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  QUALITY_CONTROLLER
+  AGENT
+  BUSINESS_OWNER
+  CLIENT
+}
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  PLANNED
+  ENDED
+  ARCHIVED
+}
+
+enum ControlType {
+  PROGRAMME
+  INOPINE
+}
+
+enum ControlStatus {
+  BROUILLON
+  EN_COURS
+  EN_ATTENTE_QCM
+  A_VALIDER
+  VALIDE
+  CLOTURE
+  ANNULE
+}
+
+enum Severity {
+  MINEURE
+  MAJEURE
+  CRITIQUE
+}
+
+enum Requirement {
+  NONE
+  OPTIONAL
+  REQUIRED
+}
+
+enum NonConformityStatus {
+  OUVERTE
+  EN_COURS
+  CORRIGEE
+  VALIDEE
+  REFUSEE
+  CLOTUREE
+}
+
+enum EvidenceType {
+  PHOTO_CAPTURE
+  PHOTO_UPLOAD
+  FILE
+  VOICE_COMMENT
+  SIGNATURE
+}
+
+enum DocumentScope {
+  AGENT
+  ENTREPRISE
+  CLIENT
+  SITE
+  CONSIGNE_SITE
+  RAPPORT_AUDIT
+  JUSTIFICATIF_REGLEMENTAIRE
+}
+
+enum DocumentStatus {
+  VALIDE
+  EN_ATTENTE_VALIDATION
+  MANQUANT
+  EXPIRANT_BIENTOT
+  EXPIRE
+  REFUSE
+  ARCHIVE
+}
+
+enum FileVisibility {
+  INTERNE
+  AGENT
+  CLIENT_AUTORISE
+  DIRECTION
+  PUBLIC_CONTROLE
+}
+
+enum QcmType {
+  OPS
+  LIGNE_METIER
+  CLIENT
+}
+
+enum QuestionType {
+  CHOIX_UNIQUE
+  CHOIX_MULTIPLE
+}
+
+enum QcmSessionStatus {
+  ENVOYE
+  EN_COURS
+  TERMINE
+  EXPIRE
+  ANNULE
+}
+
+enum PlanningStatus {
+  DEMANDE
+  ACCEPTE
+  PLANIFIE
+  REALISE
+  CLOTURE
+  REFUSE
+  REPORTE
+}
+
+enum NotificationType {
+  QCM_A_REALISER
+  DOCUMENT_EXPIRANT
+  DOCUMENT_MANQUANT
+  NON_CONFORMITE_VALIDEE
+  CONTROLE_PLANIFIE
+  DEMANDE_CONTROLE
+  RAPPORT_DISPONIBLE
+  PREVENTION_VALIDEE
+  ALERTE_CRITIQUE
+}
+
+enum ReportType {
+  COMPLET_INTERNE
+  SIMPLIFIE_CLIENT
+  SYNTHESE_MENSUELLE
+}
+
+enum ReportVisibility {
+  INTERNE
+  AGENT
+  DIRECTION
+  CLIENT_SIMPLIFIE
+  CLIENT_COMPLET_APPROUVE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  LOGIN
+  LOGOUT
+  EXPORT
+  VALIDATE
+  CLOSE
+  SYNC
+}
+
+enum SyncStatus {
+  PENDING
+  APPLIED
+  REJECTED
+}
+
+model Company {
+  id                       String                  @id @default(cuid())
+  name                     String
+  slug                     String                  @unique
+  logoUrl                  String?
+  siret                    String?
+  cnapsAuthorizationNumber String?
+  address                  String?
+  status                   CompanyStatus           @default(ACTIVE)
+  settings                 Json?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  archivedAt               DateTime?
+  users                    User[]
+  clients                  Client[]
+  sites                    Site[]
+  agents                   Agent[]
+  assignments              Assignment[]
+  controlItemDefinitions   ControlItemDefinition[]
+  controls                 Control[]
+  nonConformities          NonConformity[]
+  evidences                Evidence[]
+  documents                Document[]
+  qcms                     Qcm[]
+  qcmSessions              QcmSession[]
+  planningRequests         PlanningRequest[]
+  notifications            Notification[]
+  reports                  Report[]
+  preventionMessages       PreventionMessage[]
+  monthlySummaries         MonthlySummary[]
+  aiInsights               AiInsight[]
+  auditLogs                AuditLog[]
+  reportTemplates          ReportTemplate[]
+  syncEvents               SyncEvent[]
+}
+
+model User {
+  id                         String                       @id @default(cuid())
+  companyId                  String?
+  email                      String                       @unique
+  passwordHash               String
+  firstName                  String
+  lastName                   String
+  role                       Role
+  status                     UserStatus                   @default(ACTIVE)
+  phone                      String?
+  lastLoginAt                DateTime?
+  emailVerifiedAt            DateTime?
+  preferences                Json?
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @updatedAt
+  archivedAt                 DateTime?
+  company                    Company?                     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  agentProfile               Agent?
+  controlsAsController       Control[]                    @relation("ControlController")
+  controlsValidated          Control[]                    @relation("ControlValidator")
+  nonConformitiesValidated   NonConformity[]              @relation("NonConformityValidator")
+  evidenceUploaded           Evidence[]                   @relation("EvidenceUploader")
+  documentsValidated         Document[]                   @relation("DocumentValidator")
+  qcmSessionsSent            QcmSession[]                 @relation("QcmSessionSender")
+  planningRequestsCreated    PlanningRequest[]            @relation("PlanningRequester")
+  planningRequestsControlled PlanningRequest[]            @relation("PlanningController")
+  notifications              Notification[]
+  reportsGenerated           Report[]                     @relation("ReportGenerator")
+  preventionAcknowledgements PreventionAcknowledgement[]
+  auditLogs                  AuditLog[]
+}
+
+model Client {
+  id              String            @id @default(cuid())
+  companyId       String
+  name            String
+  reference       String
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  address         String?
+  settings        Json?
+  active          Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  archivedAt      DateTime?
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sites           Site[]
+  assignments     Assignment[]
+  planningRequests PlanningRequest[]
+  controls        Control[]
+  nonConformities NonConformity[]
+  documents       Document[]
+  qcms            Qcm[]
+
+  @@unique([companyId, reference])
+  @@index([companyId])
+}
+
+model Site {
+  id              String            @id @default(cuid())
+  companyId       String
+  clientId        String
+  name            String
+  reference       String
+  address         String
+  latitude        Float?
+  longitude       Float?
+  timezone        String            @default("Europe/Paris")
+  riskLevel       String?
+  active          Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  archivedAt      DateTime?
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client          Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignments     Assignment[]
+  planningRequests PlanningRequest[]
+  controls        Control[]
+  nonConformities NonConformity[]
+  documents       Document[]
+  qcms            Qcm[]
+
+  @@unique([companyId, reference])
+  @@index([companyId, clientId])
+}
+
+model Agent {
+  id                        String           @id @default(cuid())
+  companyId                 String
+  userId                    String?          @unique
+  matricule                 String
+  firstName                 String
+  lastName                  String
+  email                     String?
+  phone                     String?
+  professionalCardNumber    String?
+  professionalCardExpiresAt DateTime?
+  sstExpiresAt              DateTime?
+  ssiapExpiresAt            DateTime?
+  qualityScore              Float            @default(0)
+  active                    Boolean          @default(true)
+  notes                     String?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  archivedAt                DateTime?
+  company                   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user                      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assignments               Assignment[]
+  planningRequests          PlanningRequest[]
+  controls                  Control[]
+  nonConformities           NonConformity[]
+  documents                 Document[]
+  qcmSessions               QcmSession[]
+
+  @@unique([companyId, matricule])
+  @@index([companyId])
+}
+
+model Assignment {
+  id             String           @id @default(cuid())
+  companyId      String
+  agentId        String
+  clientId       String
+  siteId         String
+  jobTitle       String
+  customJobTitle String?
+  startsAt       DateTime
+  endsAt         DateTime?
+  status         AssignmentStatus @default(ACTIVE)
+  history        Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  agent          Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  client         Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  site           Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, agentId, siteId])
+}
+
+model ControlItemDefinition {
+  id                   String              @id @default(cuid())
+  companyId            String
+  label                String
+  category             String
+  coefficient          Float               @default(1)
+  severity             Severity            @default(MINEURE)
+  color                String              @default("#f59e0b")
+  correctionDelayHours Int?
+  blocking             Boolean             @default(false)
+  recommendedAction    String?
+  autoNotify           Boolean             @default(false)
+  clientVisible        Boolean             @default(true)
+  impactsGlobalScore   Boolean             @default(true)
+  photoRequirement     Requirement         @default(OPTIONAL)
+  fileRequirement      Requirement         @default(NONE)
+  voiceRequirement     Requirement         @default(OPTIONAL)
+  active               Boolean             @default(true)
+  sortOrder            Int                 @default(0)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  company              Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  itemResults          ControlItemResult[]
+  nonConformities      NonConformity[]
+
+  @@index([companyId, category])
+}
+
+model Control {
+  id                String              @id @default(cuid())
+  companyId         String
+  type              ControlType
+  status            ControlStatus       @default(BROUILLON)
+  plannedAt         DateTime?
+  startedAt         DateTime            @default(now())
+  completedAt       DateTime?
+  controllerId      String
+  agentId           String
+  clientId          String
+  siteId            String
+  latitude          Float?
+  longitude         Float?
+  detectedAddress   String?
+  globalScore       Float               @default(0)
+  observations      String?
+  agentSignature    String?
+  controllerSignature String?
+  validatedAt       DateTime?
+  validatedById     String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  controller        User                @relation("ControlController", fields: [controllerId], references: [id], onDelete: Restrict)
+  validatedBy       User?               @relation("ControlValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  agent             Agent               @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  client            Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  site              Site                @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  itemResults       ControlItemResult[]
+  nonConformities   NonConformity[]
+  qcmSessions       QcmSession[]
+  reports           Report[]
+
+  @@index([companyId, startedAt])
+  @@index([companyId, status])
+}
+
+model ControlItemResult {
+  id               String                @id @default(cuid())
+  controlId        String
+  itemDefinitionId String
+  score            Int
+  compliant        Boolean               @default(true)
+  comment          String?
+  blockingTriggered Boolean              @default(false)
+  evidenceRequired Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  control          Control               @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  itemDefinition   ControlItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Restrict)
+  evidences        Evidence[]
+  nonConformity    NonConformity?
+
+  @@index([controlId])
+}
+
+model NonConformity {
+  id               String                  @id @default(cuid())
+  companyId        String
+  title            String
+  description      String
+  severity         Severity
+  status           NonConformityStatus     @default(OUVERTE)
+  itemDefinitionId String?
+  itemResultId     String?                 @unique
+  agentId          String?
+  clientId         String
+  siteId           String
+  controlId        String?
+  dueAt            DateTime?
+  delayLabel       String?
+  internalOnly     Boolean                 @default(true)
+  validatedAt      DateTime?
+  validatedById    String?
+  closedAt         DateTime?
+  agentSignature   String?
+  controllerSignature String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  company          Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  itemDefinition   ControlItemDefinition?  @relation(fields: [itemDefinitionId], references: [id], onDelete: SetNull)
+  itemResult       ControlItemResult?      @relation(fields: [itemResultId], references: [id], onDelete: SetNull)
+  agent            Agent?                  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  client           Client                  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  site             Site                    @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  control          Control?                @relation(fields: [controlId], references: [id], onDelete: SetNull)
+  validatedBy      User?                   @relation("NonConformityValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  evidences        Evidence[]
+  comments         NonConformityComment[]
+
+  @@index([companyId, severity])
+  @@index([companyId, status])
+}
+
+model NonConformityComment {
+  id              String         @id @default(cuid())
+  nonConformityId String
+  authorName      String
+  body            String
+  internal        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  nonConformity   NonConformity  @relation(fields: [nonConformityId], references: [id], onDelete: Cascade)
+}
+
+model Evidence {
+  id                  String             @id @default(cuid())
+  companyId           String
+  nonConformityId     String?
+  controlItemResultId String?
+  type                EvidenceType
+  fileName            String?
+  fileUrl             String?
+  mimeType            String?
+  size                Int?
+  voiceTranscription  String?
+  metadata            Json?
+  uploadedById        String?
+  createdAt           DateTime           @default(now())
+  company             Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nonConformity       NonConformity?     @relation(fields: [nonConformityId], references: [id], onDelete: Cascade)
+  controlItemResult   ControlItemResult? @relation(fields: [controlItemResultId], references: [id], onDelete: Cascade)
+  uploadedBy          User?              @relation("EvidenceUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  companyId     String
+  scope         DocumentScope
+  status        DocumentStatus @default(EN_ATTENTE_VALIDATION)
+  title         String
+  category      String
+  description   String?
+  fileUrl       String?
+  fileName      String?
+  mimeType      String?
+  expiresAt     DateTime?
+  validatedAt   DateTime?
+  validatedById String?
+  agentId       String?
+  clientId      String?
+  siteId        String?
+  visibility    FileVisibility @default(INTERNE)
+  allowedRoles  Role[]
+  tags          String[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  archivedAt    DateTime?
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  validatedBy   User?          @relation("DocumentValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  agent         Agent?         @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  client        Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  site          Site?          @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
+  @@index([companyId, scope])
+}
+
+model Qcm {
+  id                  String        @id @default(cuid())
+  companyId           String
+  type                QcmType
+  title               String
+  category            String
+  coefficient         Int
+  clientId            String?
+  siteId              String?
+  jobTitle            String?
+  minimumScore        Int           @default(80)
+  maxQuestionsPerItem Int           @default(10)
+  active              Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  company             Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client              Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  site                Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  questions           QcmQuestion[]
+  sessions            QcmSession[]
+
+  @@index([companyId, type])
+}
+
+model QcmQuestion {
+  id          String       @id @default(cuid())
+  qcmId       String
+  label       String
+  type        QuestionType @default(CHOIX_UNIQUE)
+  sortOrder   Int          @default(0)
+  points      Int          @default(1)
+  explanation String?
+  qcm         Qcm          @relation(fields: [qcmId], references: [id], onDelete: Cascade)
+  choices     QcmChoice[]
+  answers     QcmAnswer[]
+}
+
+model QcmChoice {
+  id         String      @id @default(cuid())
+  questionId String
+  label      String
+  isCorrect  Boolean     @default(false)
+  question   QcmQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QcmSession {
+  id          String           @id @default(cuid())
+  companyId   String
+  qcmId       String
+  controlId   String?
+  agentId     String
+  status      QcmSessionStatus @default(ENVOYE)
+  score       Float?
+  passed      Boolean?
+  startedAt   DateTime?
+  completedAt DateTime?
+  sentById    String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  qcm         Qcm              @relation(fields: [qcmId], references: [id], onDelete: Cascade)
+  control     Control?         @relation(fields: [controlId], references: [id], onDelete: SetNull)
+  agent       Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  sentBy      User?            @relation("QcmSessionSender", fields: [sentById], references: [id], onDelete: SetNull)
+  answers     QcmAnswer[]
+
+  @@index([companyId, status])
+  @@index([agentId])
+}
+
+model QcmAnswer {
+  id                String      @id @default(cuid())
+  sessionId         String
+  questionId        String
+  selectedChoiceIds String[]
+  isCorrect         Boolean     @default(false)
+  pointsAwarded     Int         @default(0)
+  createdAt         DateTime    @default(now())
+  session           QcmSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question          QcmQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model PlanningRequest {
+  id                  String         @id @default(cuid())
+  companyId           String
+  requesterId         String
+  controllerId        String?
+  agentId             String?
+  clientId            String?
+  siteId              String?
+  title               String
+  requestedStart      DateTime
+  requestedEnd        DateTime
+  preferredTimeWindow String?
+  status              PlanningStatus @default(DEMANDE)
+  reason              String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  company             Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requester           User           @relation("PlanningRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  controller          User?          @relation("PlanningController", fields: [controllerId], references: [id], onDelete: SetNull)
+  agent               Agent?         @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  client              Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  site                Site?          @relation(fields: [siteId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  companyId      String?
+  userId         String?
+  targetRole     Role?
+  type           NotificationType
+  title          String
+  message        String
+  readAt         DateTime?
+  acknowledgedAt DateTime?
+  payload        Json?
+  createdAt      DateTime         @default(now())
+  company        Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, userId, readAt])
+}
+
+model Report {
+  id                    String           @id @default(cuid())
+  companyId             String
+  controlId             String?
+  type                  ReportType
+  visibility            ReportVisibility
+  title                 String
+  fileUrl               String?
+  generatedById         String?
+  sentToAgent           Boolean          @default(false)
+  sentToManager         Boolean          @default(false)
+  sentToClient          Boolean          @default(false)
+  requestedByClientAt   DateTime?
+  approvedFullForClientAt DateTime?
+  createdAt             DateTime         @default(now())
+  company               Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  control               Control?         @relation(fields: [controlId], references: [id], onDelete: SetNull)
+  generatedBy           User?            @relation("ReportGenerator", fields: [generatedById], references: [id], onDelete: SetNull)
+
+  @@index([companyId, type])
+}
+
+model PreventionMessage {
+  id              String                       @id @default(cuid())
+  companyId       String?
+  title           String
+  body            String
+  question        String
+  expectedAnswer  String
+  active          Boolean                      @default(true)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  company         Company?                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  acknowledgements PreventionAcknowledgement[]
+}
+
+model PreventionAcknowledgement {
+  id        String            @id @default(cuid())
+  messageId String
+  userId    String
+  companyId String?
+  answer    String
+  validated Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  message   PreventionMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model MonthlySummary {
+  id               String    @id @default(cuid())
+  companyId        String
+  month            DateTime
+  metrics          Json
+  analysis         String
+  recommendations  String
+  pdfUrl           String?
+  sentToDirectorAt DateTime?
+  createdAt        DateTime  @default(now())
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, month])
+}
+
+model AiInsight {
+  id             String   @id @default(cuid())
+  companyId      String
+  scope          String
+  inputHash      String
+  status         String   @default("SIMULE")
+  result         Json?
+  disabledReason String?
+  createdAt      DateTime @default(now())
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, scope])
+}
+
+model ReportTemplate {
+  id        String     @id @default(cuid())
+  companyId String?
+  name      String
+  type      ReportType
+  body      Json
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  companyId String?
+  actorId   String?
+  action    AuditAction
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+  company   Company?    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actor     User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@index([entity, entityId])
+}
+
+model SyncEvent {
+  id          String     @id @default(cuid())
+  companyId   String
+  userId      String?
+  deviceId    String
+  status      SyncStatus @default(PENDING)
+  entity      String
+  entityId    String?
+  operation   String
+  payload     Json
+  error       String?
+  createdAt   DateTime   @default(now())
+  appliedAt   DateTime?
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+}
