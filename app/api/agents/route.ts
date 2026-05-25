@@ -5,17 +5,34 @@ import { archiveLocalAgent, createLocalAgent, listLocalAgents, LocalStoreError, 
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
+  companyId: z.string().optional(),
+  photoUrl: z.string().optional(),
+  civility: z.enum(["MONSIEUR", "MADAME"]).optional(),
   matricule: z.string().min(2),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
+  birthDate: z.string().optional(),
+  birthPlace: z.string().optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
   professionalCardNumber: z.string().optional(),
   professionalCardExpiresAt: z.string().optional(),
   sstExpiresAt: z.string().optional(),
   ssiapExpiresAt: z.string().optional(),
+  diplomas: z.array(z.string()).optional(),
+  eligibleJobTitles: z.array(z.string()).optional(),
+  contractType: z.enum(["CDD", "CDI", "APPRENTI"]).optional(),
+  hiredAt: z.string().optional(),
   notes: z.string().optional()
 });
+
+async function resolveWritableCompanyId(userCompanyId: string | null, role: string, requestedCompanyId?: string) {
+  if (userCompanyId) return userCompanyId;
+  if (role !== "SUPER_ADMIN") return null;
+  if (requestedCompanyId) return requestedCompanyId;
+  const company = await prisma.company.findFirst({ where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" }, select: { id: true } });
+  return company?.id ?? null;
+}
 
 export async function GET(request: NextRequest) {
   const context = await requireApiUser(request, "controls.read");
@@ -33,26 +50,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const context = await requireApiUser(request, "company.manage");
   if ("status" in context) return context;
-  if (!context.user.companyId) return apiError("Entreprise requise", 400);
-  const companyId = context.user.companyId;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return apiError("Agent invalide", 400, parsed.error.flatten());
+  const { companyId: requestedCompanyId, professionalCardExpiresAt, sstExpiresAt, ssiapExpiresAt, birthDate, hiredAt, ...data } = parsed.data;
   return withDatabaseFallback(
     async () => {
+      const companyId = await resolveWritableCompanyId(context.user.companyId, context.user.role, requestedCompanyId);
+      if (!companyId) return apiError("Entreprise requise", 400);
       const agent = await prisma.agent.create({
         data: {
-          ...parsed.data,
+          ...data,
           companyId,
-          professionalCardExpiresAt: parsed.data.professionalCardExpiresAt ? new Date(parsed.data.professionalCardExpiresAt) : undefined,
-          sstExpiresAt: parsed.data.sstExpiresAt ? new Date(parsed.data.sstExpiresAt) : undefined,
-          ssiapExpiresAt: parsed.data.ssiapExpiresAt ? new Date(parsed.data.ssiapExpiresAt) : undefined
+          birthDate: birthDate ? new Date(birthDate) : undefined,
+          professionalCardExpiresAt: professionalCardExpiresAt ? new Date(professionalCardExpiresAt) : undefined,
+          sstExpiresAt: sstExpiresAt ? new Date(sstExpiresAt) : undefined,
+          ssiapExpiresAt: ssiapExpiresAt ? new Date(ssiapExpiresAt) : undefined,
+          hiredAt: hiredAt ? new Date(hiredAt) : undefined
         }
       });
       return apiOk({ agent }, { status: 201 });
     },
     async () => {
       try {
-        const agent = await createLocalAgent(context.user, parsed.data);
+        const agent = await createLocalAgent(context.user, parsed.data, requestedCompanyId);
         return apiOk({ agent }, { status: 201 });
       } catch (error) {
         if (error instanceof LocalStoreError) return apiError(error.message, error.status);
@@ -68,7 +88,8 @@ export async function PATCH(request: NextRequest) {
   if ("status" in context) return context;
   const parsed = schema.partial().extend({ id: z.string() }).safeParse(await request.json());
   if (!parsed.success) return apiError("Agent invalide", 400, parsed.error.flatten());
-  const { id, professionalCardExpiresAt, sstExpiresAt, ssiapExpiresAt, ...data } = parsed.data;
+  const { id, professionalCardExpiresAt, sstExpiresAt, ssiapExpiresAt, birthDate, hiredAt, ...data } = parsed.data;
+  delete data.companyId;
   return withDatabaseFallback(
     async () => {
       const current = await prisma.agent.findFirst({ where: { id, ...scopedCompanyWhere(context.user) } });
@@ -77,16 +98,18 @@ export async function PATCH(request: NextRequest) {
         where: { id },
         data: {
           ...data,
+          birthDate: birthDate ? new Date(birthDate) : undefined,
           professionalCardExpiresAt: professionalCardExpiresAt ? new Date(professionalCardExpiresAt) : undefined,
           sstExpiresAt: sstExpiresAt ? new Date(sstExpiresAt) : undefined,
-          ssiapExpiresAt: ssiapExpiresAt ? new Date(ssiapExpiresAt) : undefined
+          ssiapExpiresAt: ssiapExpiresAt ? new Date(ssiapExpiresAt) : undefined,
+          hiredAt: hiredAt ? new Date(hiredAt) : undefined
         }
       });
       return apiOk({ agent });
     },
     async () => {
       try {
-        const agent = await updateLocalAgent(context.user, id, { ...data, professionalCardExpiresAt, sstExpiresAt, ssiapExpiresAt });
+        const agent = await updateLocalAgent(context.user, id, { ...data, professionalCardExpiresAt, sstExpiresAt, ssiapExpiresAt, birthDate, hiredAt });
         return apiOk({ agent });
       } catch (error) {
         if (error instanceof LocalStoreError) return apiError(error.message, error.status);

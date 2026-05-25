@@ -16,6 +16,17 @@ enum Role {
   CLIENT
 }
 
+enum Civility {
+  MONSIEUR
+  MADAME
+}
+
+enum ContractType {
+  CDD
+  CDI
+  APPRENTI
+}
+
 enum CompanyStatus {
   ACTIVE
   SUSPENDED
@@ -309,15 +320,23 @@ model Agent {
   id                        String           @id @default(cuid())
   companyId                 String
   userId                    String?          @unique
+  photoUrl                  String?
+  civility                  Civility?
   matricule                 String
   firstName                 String
   lastName                  String
+  birthDate                 DateTime?
+  birthPlace                String?
   email                     String?
   phone                     String?
   professionalCardNumber    String?
   professionalCardExpiresAt DateTime?
   sstExpiresAt              DateTime?
   ssiapExpiresAt            DateTime?
+  diplomas                  String[]         @default([])
+  eligibleJobTitles         String[]         @default([])
+  contractType              ContractType?
+  hiredAt                   DateTime?
   qualityScore              Float            @default(0)
   active                    Boolean          @default(true)
   notes                     String?

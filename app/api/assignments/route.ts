@@ -35,24 +35,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const context = await requireApiUser(request, "company.manage");
   if ("status" in context) return context;
-  if (!context.user.companyId) return apiError("Entreprise requise", 400);
-  const companyId = context.user.companyId;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return apiError("Affectation invalide", 400, parsed.error.flatten());
 
   return withDatabaseFallback(
     async () => {
+      const scope = scopedCompanyWhere(context.user);
       const [agent, client, site] = await Promise.all([
-        prisma.agent.findFirst({ where: { id: parsed.data.agentId, companyId, active: true } }),
-        prisma.client.findFirst({ where: { id: parsed.data.clientId, companyId, active: true } }),
-        prisma.site.findFirst({ where: { id: parsed.data.siteId, clientId: parsed.data.clientId, companyId, active: true } })
+        prisma.agent.findFirst({ where: { id: parsed.data.agentId, ...scope, active: true } }),
+        prisma.client.findFirst({ where: { id: parsed.data.clientId, ...scope, active: true } }),
+        prisma.site.findFirst({ where: { id: parsed.data.siteId, clientId: parsed.data.clientId, ...scope, active: true } })
       ]);
       if (!agent || !client || !site) return apiError("Agent, client ou site introuvable", 404);
+      if (agent.companyId !== client.companyId || agent.companyId !== site.companyId) {
+        return apiError("Agent, client et site doivent appartenir a la meme entreprise", 400);
+      }
 
       const assignment = await prisma.assignment.create({
         data: {
           ...parsed.data,
-          companyId,
+          companyId: agent.companyId,
           startsAt: new Date(parsed.data.startsAt),
           endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : undefined
         },

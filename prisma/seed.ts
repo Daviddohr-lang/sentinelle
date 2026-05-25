@@ -183,14 +183,21 @@ async function main() {
       id: "agt_lucas",
       companyId: company.id,
       userId: agentUser.id,
+      civility: "MONSIEUR",
       matricule: "OPS-0142",
       firstName: "Lucas",
       lastName: "Morel",
+      birthDate: new Date("1992-04-14"),
+      birthPlace: "Amiens",
       email: "agent@ops.example",
       phone: "06 10 20 30 40",
       professionalCardNumber: "CAR-2024-99012",
       professionalCardExpiresAt: new Date("2026-09-30"),
       sstExpiresAt: new Date("2026-12-18"),
+      diplomas: ["Carte professionnelle", "SST", "H0 B0"],
+      eligibleJobTitles: ["Agent", "Rondier intervenant"],
+      contractType: "CDI",
+      hiredAt: new Date("2024-02-01"),
       qualityScore: 86
     }
   });
@@ -199,15 +206,22 @@ async function main() {
     data: {
       id: "agt_amina",
       companyId: company.id,
+      civility: "MADAME",
       matricule: "OPS-0177",
       firstName: "Amina",
       lastName: "Roux",
+      birthDate: new Date("1989-11-03"),
+      birthPlace: "Beauvais",
       email: "amina.roux@ops.example",
       phone: "06 22 11 55 18",
       professionalCardNumber: "CAR-2023-77340",
       professionalCardExpiresAt: new Date("2026-07-12"),
       sstExpiresAt: new Date("2026-08-02"),
       ssiapExpiresAt: new Date("2027-02-12"),
+      diplomas: ["Carte professionnelle", "SST", "SSIAP 1", "BS"],
+      eligibleJobTitles: ["Agent", "SSIAP 1", "Operateur en videoprotection"],
+      contractType: "CDI",
+      hiredAt: new Date("2023-09-15"),
       qualityScore: 91
     }
   });
@@ -216,14 +230,21 @@ async function main() {
     data: {
       id: "agt_marc",
       companyId: company.id,
+      civility: "MONSIEUR",
       matricule: "OPS-0098",
       firstName: "Marc",
       lastName: "Vidal",
+      birthDate: new Date("1984-06-22"),
+      birthPlace: "Abbeville",
       email: "marc.vidal@ops.example",
       phone: "06 38 22 90 01",
       professionalCardNumber: "CAR-2022-10450",
       professionalCardExpiresAt: new Date("2026-06-20"),
       sstExpiresAt: new Date("2026-05-31"),
+      diplomas: ["Carte professionnelle", "BE Manoeuvre"],
+      eligibleJobTitles: ["Agent", "Chef d'equipe", "Referent"],
+      contractType: "CDD",
+      hiredAt: new Date("2025-01-06"),
       qualityScore: 73
     }
   });

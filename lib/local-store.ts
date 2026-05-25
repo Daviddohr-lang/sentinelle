@@ -44,15 +44,23 @@ export type LocalAgent = {
   id: string;
   companyId: string;
   userId?: string | null;
+  photoUrl?: string | null;
+  civility?: "MONSIEUR" | "MADAME" | null;
   matricule: string;
   firstName: string;
   lastName: string;
+  birthDate?: string | null;
+  birthPlace?: string | null;
   email?: string | null;
   phone?: string | null;
   professionalCardNumber?: string | null;
   professionalCardExpiresAt?: string | null;
   sstExpiresAt?: string | null;
   ssiapExpiresAt?: string | null;
+  diplomas?: string[];
+  eligibleJobTitles?: string[];
+  contractType?: "CDD" | "CDI" | "APPRENTI" | null;
+  hiredAt?: string | null;
   qualityScore: number;
   active: boolean;
   notes?: string | null;
@@ -117,6 +125,22 @@ function normalizeDate(value?: string | null) {
   return normalized ? new Date(normalized).toISOString() : null;
 }
 
+function normalizeStringArray(value?: string[] | null) {
+  return Array.isArray(value) ? [...new Set(value.map((item) => item.trim()).filter(Boolean))] : [];
+}
+
+function normalizeCivility(value?: string | null): LocalAgent["civility"] {
+  return value === "MONSIEUR" || value === "MADAME" ? value : null;
+}
+
+function normalizeContractType(value?: string | null): LocalAgent["contractType"] {
+  return value === "CDD" || value === "CDI" || value === "APPRENTI" ? value : null;
+}
+
+function resolveDefaultCompanyId(store: LocalStore, companyId?: string | null) {
+  return companyId ?? store.clients.find((client) => client.active)?.companyId ?? store.agents.find((agent) => agent.active)?.companyId ?? store.sites.find((site) => site.active)?.companyId ?? null;
+}
+
 function initialStore(): LocalStore {
   const createdAt = nowIso();
   const clients = demoClients.map((client) => ({
@@ -145,12 +169,20 @@ function initialStore(): LocalStore {
   const agents = demoAgents.map((agent) => ({
     ...agent,
     userId: agent.userId ?? null,
+    photoUrl: agent.photoUrl ?? null,
+    civility: normalizeCivility(agent.civility),
+    birthDate: normalizeDate(agent.birthDate),
+    birthPlace: agent.birthPlace ?? null,
     email: agent.email ?? null,
     phone: agent.phone ?? null,
     professionalCardNumber: agent.professionalCardNumber ?? null,
     professionalCardExpiresAt: normalizeDate(agent.professionalCardExpiresAt),
     sstExpiresAt: normalizeDate(agent.sstExpiresAt),
     ssiapExpiresAt: normalizeDate(agent.ssiapExpiresAt),
+    diplomas: normalizeStringArray(agent.diplomas),
+    eligibleJobTitles: normalizeStringArray(agent.eligibleJobTitles),
+    contractType: normalizeContractType(agent.contractType),
+    hiredAt: normalizeDate(agent.hiredAt),
     qualityScore: agent.qualityScore ?? 0,
     active: true,
     notes: null,
@@ -273,7 +305,7 @@ export async function listLocalClients(user: SessionUser) {
 
 export async function createLocalClient(user: SessionUser, input: Omit<LocalClient, "id" | "companyId" | "active" | "createdAt" | "updatedAt" | "archivedAt">, companyId?: string | null) {
   const store = await readLocalStore();
-  const resolvedCompanyId = companyId ?? user.companyId;
+  const resolvedCompanyId = companyId ?? user.companyId ?? resolveDefaultCompanyId(store);
   if (!resolvedCompanyId) throw new LocalStoreError("Entreprise requise", 400);
   if (user.role !== "SUPER_ADMIN" && user.companyId !== resolvedCompanyId) throw new LocalStoreError("Acces entreprise interdit", 403);
   if (store.clients.some((client) => client.companyId === resolvedCompanyId && client.reference === input.reference && client.active)) {
@@ -405,27 +437,37 @@ export async function listLocalAgents(user: SessionUser) {
   return scopedLocalRecords(withRelations(store).agents, user).sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, "fr"));
 }
 
-export async function createLocalAgent(user: SessionUser, input: Omit<LocalAgent, "id" | "companyId" | "qualityScore" | "active" | "createdAt" | "updatedAt" | "archivedAt">) {
+export async function createLocalAgent(user: SessionUser, input: Omit<LocalAgent, "id" | "companyId" | "qualityScore" | "active" | "createdAt" | "updatedAt" | "archivedAt">, companyId?: string | null) {
   const store = await readLocalStore();
-  if (!user.companyId) throw new LocalStoreError("Entreprise requise", 400);
-  if (store.agents.some((agent) => agent.companyId === user.companyId && agent.matricule === input.matricule && agent.active)) {
+  const resolvedCompanyId = user.companyId ?? resolveDefaultCompanyId(store, companyId);
+  if (!resolvedCompanyId) throw new LocalStoreError("Entreprise requise", 400);
+  if (user.role !== "SUPER_ADMIN" && user.companyId !== resolvedCompanyId) throw new LocalStoreError("Acces entreprise interdit", 403);
+  if (store.agents.some((agent) => agent.companyId === resolvedCompanyId && agent.matricule === input.matricule && agent.active)) {
     throw new LocalStoreError("Matricule deja utilise", 409);
   }
 
   const timestamp = nowIso();
   const agent: LocalAgent = {
     id: createId("agt"),
-    companyId: user.companyId,
+    companyId: resolvedCompanyId,
     userId: input.userId ?? null,
+    photoUrl: normalizeOptional(input.photoUrl),
+    civility: normalizeCivility(input.civility),
     matricule: input.matricule.trim(),
     firstName: input.firstName.trim(),
     lastName: input.lastName.trim(),
+    birthDate: normalizeDate(input.birthDate),
+    birthPlace: normalizeOptional(input.birthPlace),
     email: normalizeOptional(input.email),
     phone: normalizeOptional(input.phone),
     professionalCardNumber: normalizeOptional(input.professionalCardNumber),
     professionalCardExpiresAt: normalizeDate(input.professionalCardExpiresAt),
     sstExpiresAt: normalizeDate(input.sstExpiresAt),
     ssiapExpiresAt: normalizeDate(input.ssiapExpiresAt),
+    diplomas: normalizeStringArray(input.diplomas),
+    eligibleJobTitles: normalizeStringArray(input.eligibleJobTitles),
+    contractType: normalizeContractType(input.contractType),
+    hiredAt: normalizeDate(input.hiredAt),
     qualityScore: 0,
     active: true,
     notes: normalizeOptional(input.notes),
@@ -449,15 +491,23 @@ export async function updateLocalAgent(user: SessionUser, id: string, input: Par
   const updated: LocalAgent = {
     ...current,
     ...input,
+    photoUrl: input.photoUrl !== undefined ? normalizeOptional(input.photoUrl) : current.photoUrl,
+    civility: input.civility !== undefined ? normalizeCivility(input.civility) : current.civility,
     matricule: input.matricule?.trim() ?? current.matricule,
     firstName: input.firstName?.trim() ?? current.firstName,
     lastName: input.lastName?.trim() ?? current.lastName,
+    birthDate: input.birthDate !== undefined ? normalizeDate(input.birthDate) : current.birthDate,
+    birthPlace: input.birthPlace !== undefined ? normalizeOptional(input.birthPlace) : current.birthPlace,
     email: input.email !== undefined ? normalizeOptional(input.email) : current.email,
     phone: input.phone !== undefined ? normalizeOptional(input.phone) : current.phone,
     professionalCardNumber: input.professionalCardNumber !== undefined ? normalizeOptional(input.professionalCardNumber) : current.professionalCardNumber,
     professionalCardExpiresAt: input.professionalCardExpiresAt !== undefined ? normalizeDate(input.professionalCardExpiresAt) : current.professionalCardExpiresAt,
     sstExpiresAt: input.sstExpiresAt !== undefined ? normalizeDate(input.sstExpiresAt) : current.sstExpiresAt,
     ssiapExpiresAt: input.ssiapExpiresAt !== undefined ? normalizeDate(input.ssiapExpiresAt) : current.ssiapExpiresAt,
+    diplomas: input.diplomas !== undefined ? normalizeStringArray(input.diplomas) : (current.diplomas ?? []),
+    eligibleJobTitles: input.eligibleJobTitles !== undefined ? normalizeStringArray(input.eligibleJobTitles) : (current.eligibleJobTitles ?? []),
+    contractType: input.contractType !== undefined ? normalizeContractType(input.contractType) : current.contractType,
+    hiredAt: input.hiredAt !== undefined ? normalizeDate(input.hiredAt) : current.hiredAt,
     notes: input.notes !== undefined ? normalizeOptional(input.notes) : current.notes,
     updatedAt: nowIso()
   };
@@ -477,17 +527,19 @@ export async function listLocalAssignments(user: SessionUser) {
 
 export async function createLocalAssignment(user: SessionUser, input: Omit<LocalAssignment, "id" | "companyId" | "status" | "createdAt" | "updatedAt" | "agent" | "client" | "site">) {
   const store = await readLocalStore();
-  if (!user.companyId) throw new LocalStoreError("Entreprise requise", 400);
+  const companyScope = user.companyId;
 
-  const agent = store.agents.find((item) => item.id === input.agentId && item.companyId === user.companyId && item.active);
-  const client = store.clients.find((item) => item.id === input.clientId && item.companyId === user.companyId && item.active);
-  const site = store.sites.find((item) => item.id === input.siteId && item.companyId === user.companyId && item.clientId === input.clientId && item.active);
+  const agent = store.agents.find((item) => item.id === input.agentId && (!companyScope || item.companyId === companyScope) && item.active);
+  const client = store.clients.find((item) => item.id === input.clientId && (!companyScope || item.companyId === companyScope) && item.active);
+  const site = store.sites.find((item) => item.id === input.siteId && (!companyScope || item.companyId === companyScope) && item.clientId === input.clientId && item.active);
   if (!agent || !client || !site) throw new LocalStoreError("Agent, client ou site introuvable", 404);
+  if (agent.companyId !== client.companyId || agent.companyId !== site.companyId) throw new LocalStoreError("Agent, client et site doivent appartenir a la meme entreprise", 400);
+  if (user.role !== "SUPER_ADMIN" && agent.companyId !== user.companyId) throw new LocalStoreError("Acces entreprise interdit", 403);
 
   const timestamp = nowIso();
   const assignment: LocalAssignment = {
     id: createId("asg"),
-    companyId: user.companyId,
+    companyId: agent.companyId,
     agentId: agent.id,
     clientId: client.id,
     siteId: site.id,
