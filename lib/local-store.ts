@@ -2,9 +2,27 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Prisma } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
-import { demoAgents, demoAssignments, demoClients, demoSites } from "@/lib/demo-data";
+import { demoAgents, demoAssignments, demoClients, demoCompany, demoSites } from "@/lib/demo-data";
 
 type JsonRecord = Record<string, unknown>;
+
+export type LocalCompany = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  siret?: string | null;
+  cnapsAuthorizationNumber?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  legalNotice?: string | null;
+  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  settings?: JsonRecord | null;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string | null;
+};
 
 export type LocalClient = {
   id: string;
@@ -89,6 +107,7 @@ export type LocalAssignment = {
 };
 
 export type LocalStore = {
+  companies: LocalCompany[];
   clients: LocalClient[];
   sites: LocalSite[];
   agents: LocalAgent[];
@@ -138,11 +157,35 @@ function normalizeContractType(value?: string | null): LocalAgent["contractType"
 }
 
 function resolveDefaultCompanyId(store: LocalStore, companyId?: string | null) {
-  return companyId ?? store.clients.find((client) => client.active)?.companyId ?? store.agents.find((agent) => agent.active)?.companyId ?? store.sites.find((site) => site.active)?.companyId ?? null;
+  return (
+    companyId ??
+    store.companies.find((company) => company.status === "ACTIVE")?.id ??
+    store.clients.find((client) => client.active)?.companyId ??
+    store.agents.find((agent) => agent.active)?.companyId ??
+    store.sites.find((site) => site.active)?.companyId ??
+    null
+  );
 }
 
 function initialStore(): LocalStore {
   const createdAt = nowIso();
+  const companies = [
+    {
+      ...demoCompany,
+      logoUrl: demoCompany.logoUrl ?? null,
+      siret: demoCompany.siret ?? null,
+      cnapsAuthorizationNumber: demoCompany.cnapsAuthorizationNumber ?? null,
+      address: demoCompany.address ?? null,
+      phone: demoCompany.phone ?? null,
+      website: demoCompany.website ?? null,
+      legalNotice: demoCompany.legalNotice ?? null,
+      status: "ACTIVE" as const,
+      settings: null,
+      createdAt,
+      updatedAt: createdAt,
+      archivedAt: null
+    }
+  ];
   const clients = demoClients.map((client) => ({
     ...client,
     contactName: client.contactName ?? null,
@@ -205,12 +248,13 @@ function initialStore(): LocalStore {
     };
   });
 
-  return { clients, sites, agents, assignments };
+  return { companies, clients, sites, agents, assignments };
 }
 
 function completeStore(partial: Partial<LocalStore>): LocalStore {
   const base = initialStore();
   return {
+    companies: partial.companies ?? base.companies,
     clients: partial.clients ?? base.clients,
     sites: partial.sites ?? base.sites,
     agents: partial.agents ?? base.agents,
@@ -275,6 +319,70 @@ export async function writeLocalStore(store: LocalStore) {
 
 export function scopedLocalRecords<T extends { companyId: string }>(records: T[], user: SessionUser) {
   return user.role === "SUPER_ADMIN" ? records : records.filter((record) => record.companyId === user.companyId);
+}
+
+export function scopedLocalCompanies(companies: LocalCompany[], user: SessionUser) {
+  return user.role === "SUPER_ADMIN" ? companies : companies.filter((company) => company.id === user.companyId);
+}
+
+export async function listLocalCompanies(user: SessionUser) {
+  const store = await readLocalStore();
+  return scopedLocalCompanies(store.companies.filter((company) => company.status !== "ARCHIVED"), user).sort((a, b) => a.name.localeCompare(b.name, "fr"));
+}
+
+export async function getLocalCompanyProfile(user: SessionUser) {
+  const companies = await listLocalCompanies(user);
+  return companies[0] ?? null;
+}
+
+export async function createLocalCompany(input: Omit<LocalCompany, "id" | "status" | "createdAt" | "updatedAt" | "archivedAt">) {
+  const store = await readLocalStore();
+  const timestamp = nowIso();
+  const company: LocalCompany = {
+    id: createId("cmp"),
+    name: input.name.trim(),
+    slug: input.slug.trim(),
+    logoUrl: normalizeOptional(input.logoUrl),
+    siret: normalizeOptional(input.siret),
+    cnapsAuthorizationNumber: normalizeOptional(input.cnapsAuthorizationNumber),
+    address: normalizeOptional(input.address),
+    phone: normalizeOptional(input.phone),
+    website: normalizeOptional(input.website),
+    legalNotice: normalizeOptional(input.legalNotice),
+    status: "ACTIVE",
+    settings: input.settings ?? null,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    archivedAt: null
+  };
+  store.companies.push(company);
+  await writeLocalStore(store);
+  return company;
+}
+
+export async function updateLocalCompany(user: SessionUser, id: string, input: Partial<LocalCompany>) {
+  const store = await readLocalStore();
+  const index = store.companies.findIndex((company) => company.id === id);
+  if (index === -1) throw new LocalStoreError("Entreprise introuvable", 404);
+  const current = store.companies[index];
+  if (user.role !== "SUPER_ADMIN" && current.id !== user.companyId) throw new LocalStoreError("Acces entreprise interdit", 403);
+  const updated: LocalCompany = {
+    ...current,
+    ...input,
+    name: input.name?.trim() ?? current.name,
+    slug: input.slug?.trim() ?? current.slug,
+    logoUrl: input.logoUrl !== undefined ? normalizeOptional(input.logoUrl) : current.logoUrl,
+    siret: input.siret !== undefined ? normalizeOptional(input.siret) : current.siret,
+    cnapsAuthorizationNumber: input.cnapsAuthorizationNumber !== undefined ? normalizeOptional(input.cnapsAuthorizationNumber) : current.cnapsAuthorizationNumber,
+    address: input.address !== undefined ? normalizeOptional(input.address) : current.address,
+    phone: input.phone !== undefined ? normalizeOptional(input.phone) : current.phone,
+    website: input.website !== undefined ? normalizeOptional(input.website) : current.website,
+    legalNotice: input.legalNotice !== undefined ? normalizeOptional(input.legalNotice) : current.legalNotice,
+    updatedAt: nowIso()
+  };
+  store.companies[index] = updated;
+  await writeLocalStore(store);
+  return updated;
 }
 
 export function withRelations(store: LocalStore) {

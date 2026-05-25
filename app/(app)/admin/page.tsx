@@ -1,8 +1,10 @@
 import { Bell, Building2, ListChecks, Lock, Settings, Users } from "lucide-react";
 import { Badge, DataTable, PageHeader, Section, StatCard } from "@/components/ui";
-import { demoClients, demoCompany, demoControlItems, demoUsers } from "@/lib/demo-data";
+import { CompanyIdentityManager } from "@/components/company-identity-manager";
+import { demoClients, demoControlItems, demoUsers } from "@/lib/demo-data";
 import { roleLabels } from "@/lib/constants";
 import { getSessionFromCookies } from "@/lib/auth";
+import { getShellCompanyProfile } from "@/lib/company-profile";
 import { hasPermission } from "@/lib/rbac";
 
 export default async function AdminPage() {
@@ -14,6 +16,7 @@ export default async function AdminPage() {
       </div>
     );
   }
+  const companyProfile = await getShellCompanyProfile(user);
 
   return (
     <div className="space-y-8">
@@ -23,11 +26,15 @@ export default async function AdminPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Entreprise" value={demoCompany.name} trend={demoCompany.cnapsAuthorizationNumber} icon={Building2} />
+        <StatCard label="Entreprise" value={companyProfile.name} trend={companyProfile.cnapsAuthorizationNumber ?? "CNAPS non renseigne"} icon={Building2} />
         <StatCard label="Utilisateurs" value={demoUsers.length} trend="6 rôles métiers" icon={Users} />
         <StatCard label="Items actifs" value={demoControlItems.length} trend="Personnalisables" icon={ListChecks} />
         <StatCard label="Alertes" value="9" trend="Documents et terrain" icon={Bell} />
       </div>
+
+      <Section title="Identité entreprise">
+        <CompanyIdentityManager />
+      </Section>
 
       <Section title="Utilisateurs et permissions">
         <DataTable

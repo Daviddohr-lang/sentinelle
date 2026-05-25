@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/lib/auth";
 import { SECURITY_COMPANY_LEGAL_NOTICE } from "@/lib/constants";
 import { demoCompany } from "@/lib/demo-data";
+import { getLocalCompanyProfile } from "@/lib/local-store";
 import { prisma } from "@/lib/prisma";
 
 export type ShellCompanyProfile = {
@@ -52,6 +53,15 @@ export async function getShellCompanyProfile(user: SessionUser) {
     });
 
     if (company) return normalizeCompanyProfile(company);
+  } catch (error) {
+    if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE !== "true") {
+      console.error(error);
+    }
+  }
+
+  try {
+    const localCompany = await getLocalCompanyProfile(user);
+    if (localCompany) return normalizeCompanyProfile(localCompany);
   } catch (error) {
     if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE !== "true") {
       console.error(error);
