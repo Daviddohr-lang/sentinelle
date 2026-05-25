@@ -48,6 +48,23 @@ npm run dev
 
 Ouvrir ensuite `http://localhost:3000`.
 
+## Mode exploitable avant deploiement
+
+Les modules `Clients et sites` et `Agents` sont maintenant utilisables en CRUD :
+
+- creation, modification et archivage des clients ;
+- creation, modification et archivage des sites ;
+- creation, modification et archivage des agents ;
+- creation, modification et archivage des affectations agents/clients/sites.
+
+En cible, ces actions passent par Prisma et PostgreSQL. En developpement, si PostgreSQL ou le moteur Prisma n'est pas disponible, l'application bascule automatiquement sur une persistance locale dans `.sentinelle/local-data.json`. Ce dossier est ignore par Git et sert uniquement a tester l'outil avant de brancher une base hebergee ou Docker.
+
+Pour forcer l'usage exclusif de PostgreSQL en local :
+
+```bash
+LOCAL_DATASTORE_DISABLED="true"
+```
+
 ## Prévisualisation sans dépendances
 
 Si `npm` n'est pas encore disponible sur la machine, un serveur de démonstration minimal permet de vérifier l'accès local :

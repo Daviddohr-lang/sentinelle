@@ -12,4 +12,5 @@ public/uploads
 *.swo
 .DS_Store
 .codex-tools
+.sentinelle
 tsconfig.tsbuildinfo
