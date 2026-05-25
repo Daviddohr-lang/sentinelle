@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
   );
 
   const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
-  return new Response(buffer, {
+  const body = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+  return new Response(body, {
     headers: {
       "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "content-disposition": 'attachment; filename="sentinelle-export.xlsx"'

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { generateAuditPdf } from "@/lib/pdf";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { generateAuditPdf } from "../lib/pdf.ts";
 
 describe("generation PDF", () => {
   it("produit un flux PDF minimal valide", () => {
@@ -9,7 +10,7 @@ describe("generation PDF", () => {
     });
 
     const text = new TextDecoder().decode(pdf);
-    expect(text.startsWith("%PDF-1.4")).toBe(true);
-    expect(text).toContain("%%EOF");
+    assert.equal(text.startsWith("%PDF-1.4"), true);
+    assert.equal(text.includes("%%EOF"), true);
   });
 });

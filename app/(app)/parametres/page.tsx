@@ -55,7 +55,7 @@ export default function SettingsPage() {
       <Section title="Mode hors ligne et synchronisation">
         <div className="surface rounded-lg p-5">
           <p className="text-sm leading-6 text-ink-600 dark:text-ink-300">
-            Les contrôles terrain peuvent être mis en file locale lorsque le réseau est absent. L'API /api/sync stocke les événements pour réconciliation et audit au retour réseau.
+            Les contrôles terrain peuvent être mis en file locale lorsque le réseau est absent. L&apos;API /api/sync stocke les événements pour réconciliation et audit au retour réseau.
           </p>
         </div>
       </Section>

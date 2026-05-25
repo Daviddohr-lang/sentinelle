@@ -9,7 +9,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -20,6 +20,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@next/swc-wasm-nodejs": "^15.5.18",
     "@prisma/client": "^5.16.1",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",

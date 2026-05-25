@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { apiError, apiOk, requireApiUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         entity: event.entity,
         entityId: event.entityId,
         operation: event.operation,
-        payload: event.payload,
+        payload: JSON.parse(JSON.stringify(event.payload)) as Prisma.InputJsonValue,
         status: "PENDING"
       }))
     });

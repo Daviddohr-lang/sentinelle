@@ -1,19 +1,20 @@
-import { describe, expect, it } from "vitest";
-import { canAccessCompany, hasPermission } from "@/lib/rbac";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { canAccessCompany, hasPermission } from "../lib/rbac.ts";
 
 describe("RBAC SENTINELLE", () => {
   it("autorise le super administrateur a travers les entreprises", () => {
-    expect(canAccessCompany("SUPER_ADMIN", null, "cmp_2")).toBe(true);
-    expect(hasPermission("SUPER_ADMIN", "platform.manage")).toBe(true);
+    assert.equal(canAccessCompany("SUPER_ADMIN", null, "cmp_2"), true);
+    assert.equal(hasPermission("SUPER_ADMIN", "platform.manage"), true);
   });
 
   it("bloque l'acces inter-entreprise pour un administrateur entreprise", () => {
-    expect(canAccessCompany("COMPANY_ADMIN", "cmp_1", "cmp_2")).toBe(false);
-    expect(canAccessCompany("COMPANY_ADMIN", "cmp_1", "cmp_1")).toBe(true);
+    assert.equal(canAccessCompany("COMPANY_ADMIN", "cmp_1", "cmp_2"), false);
+    assert.equal(canAccessCompany("COMPANY_ADMIN", "cmp_1", "cmp_1"), true);
   });
 
   it("limite le client aux rapports simplifies", () => {
-    expect(hasPermission("CLIENT", "reports.client")).toBe(true);
-    expect(hasPermission("CLIENT", "reports.full")).toBe(false);
+    assert.equal(hasPermission("CLIENT", "reports.client"), true);
+    assert.equal(hasPermission("CLIENT", "reports.full"), false);
   });
 });

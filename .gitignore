@@ -11,3 +11,5 @@ public/uploads
 *.swp
 *.swo
 .DS_Store
+.codex-tools
+tsconfig.tsbuildinfo

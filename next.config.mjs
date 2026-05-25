@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typedRoutes: false,
   experimental: {
-    typedRoutes: false
+    useWasmBinary: true
   },
   poweredByHeader: false,
   reactStrictMode: true,

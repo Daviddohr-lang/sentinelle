@@ -1,10 +1,18 @@
 "use client";
 
-import { Camera, FileUp, LocateFixed, Mic, Save, Signature, WifiOff } from "lucide-react";
+import { Camera, FileUp, LocateFixed, Mic, Save, Signature, WifiOff, type LucideIcon } from "lucide-react";
 import type { PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { demoAgents, demoClients, demoControlItems, demoSites } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
+
+const evidenceOptions: Array<{ value: string; label: string; icon: LucideIcon }> = [
+  { value: "none", label: "Non, passer", icon: WifiOff },
+  { value: "camera", label: "Prendre photo", icon: Camera },
+  { value: "upload", label: "Importer photo", icon: FileUp },
+  { value: "file", label: "Ajouter fichier", icon: FileUp },
+  { value: "voice", label: "Commentaire vocal", icon: Mic }
+];
 
 type SignatureCanvasProps = {
   label: string;
@@ -274,17 +282,11 @@ export function ControlForm() {
                 <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-400/30 dark:bg-amber-500/15">
                   <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Souhaitez-vous ajouter une preuve ?</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {[
-                      ["none", "Non, passer", WifiOff],
-                      ["camera", "Prendre photo", Camera],
-                      ["upload", "Importer photo", FileUp],
-                      ["file", "Ajouter fichier", FileUp],
-                      ["voice", "Commentaire vocal", Mic]
-                    ].map(([value, label, Icon]) => (
+                    {evidenceOptions.map(({ value, label, icon: Icon }) => (
                       <button
-                        key={String(value)}
+                        key={value}
                         type="button"
-                        onClick={() => setEvidence((current) => ({ ...current, [item.id]: String(value) }))}
+                        onClick={() => setEvidence((current) => ({ ...current, [item.id]: value }))}
                         className={cn(
                           "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold",
                           evidence[item.id] === value
