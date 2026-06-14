@@ -1,0 +1,11 @@
+.git
+.next
+.sentinelle
+.env
+.env.local
+.env.production
+node_modules
+storage
+npm-debug.log
+Dockerfile
+docker-compose*.yml

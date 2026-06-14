@@ -1,5 +1,6 @@
 import { Download, FileText, LockKeyhole, Send } from "lucide-react";
 import { Badge, DataTable, PageHeader, Section, StatCard } from "@/components/ui";
+import { ReportFormsManager } from "@/components/report-forms-manager";
 import { demoReports } from "@/lib/demo-data";
 
 export default function ReportsPage() {
@@ -17,6 +18,10 @@ export default function ReportsPage() {
       </div>
 
       <Section title="Bibliothèque de rapports">
+        <ReportFormsManager />
+      </Section>
+
+      <Section title="Historique de démonstration">
         <DataTable
           columns={["Titre", "Type", "Visibilité", "Agent", "Direction", "Client", "Date", "PDF"]}
           rows={demoReports.map((report) => [

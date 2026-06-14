@@ -16,6 +16,9 @@ prisma/
   schema.prisma          Modèle relationnel PostgreSQL
   seed.ts                Données de démonstration
 public/                  Manifest PWA, service worker, icône
+Dockerfile               Image de production Next.js
+docker-compose.production.yml
+                         App + PostgreSQL + volume fichiers persistant
 tests/                   Tests unitaires RBAC et PDF
 ```
 
@@ -23,15 +26,16 @@ tests/                   Tests unitaires RBAC et PDF
 
 - Multi-entreprise : entreprises, clients, sites, agents, affectations et séparation stricte par `companyId`.
 - Sécurité : rôles, permissions, cookies HttpOnly, middleware de protection, journal d’activité, contrôle d’accès documentaire.
-- Contrôles qualité : type programmé/inopiné, géolocalisation, items pondérés, signatures tactiles, preuves, notes par item et note globale.
+- Contrôles qualité : bibliothèque dynamique OPS, 12 critères, 80 points, réponses Conforme/Non conforme/Sans objet, critères sélectionnables, score automatique, alertes bloquantes, signatures tactiles et preuves.
 - Non-conformités : gravité mineure/majeure/critique, délais, statuts, validation avant notification, clôture et historique.
-- Rapports PDF : rapport complet interne et rapport simplifié client.
-- QCM : OPS, ligne métier, client, coefficients 1/2/3, score en pourcentage, historique.
+- Rapports PDF : rapport complet interne, rapport agent, rapport direction et rapport client simplifié.
+- QCM : banques de questions entreprise, métier et client/site, tirage aléatoire de 10 questions, chronomètre 60s, interruptions journalisées, coefficients 1/2/3, résultats agent/contrôleur et historique.
 - Documentaire : documents agents, entreprise, clients, sites, consignes, statuts et alertes d’expiration.
 - Planning : demandes, planification, plages dates/heures et statuts.
 - Espaces par rôle : super admin, admin entreprise, contrôleur, agent, chef d’entreprise, client.
 - Dashboards : contrôles, notes, non-conformités, documents, QCM, connexions, exports.
 - PWA : manifest, service worker, file locale hors ligne et API `/api/sync`.
+- Diffusion : page `/diffusion`, installation PWA, Docker de production, stockage fichiers persistant et préflight configuration.
 - IA : endpoint `/api/ai/analyze` simulé et désactivable par variable d’environnement.
 
 ## Installation
@@ -56,6 +60,8 @@ Les modules `Clients et sites` et `Agents` sont maintenant utilisables en CRUD :
 - creation, modification et archivage des sites ;
 - creation, modification et archivage des agents ;
 - creation, modification et archivage des affectations agents/clients/sites.
+- administration des banques QCM, questions, lancement depuis contrôle, passage agent chronométré et résultats historisés.
+- lancement d'un contrôle qualité dynamique depuis `/controles/nouveau`, choix partiel ou complet des critères, panneau automatique de non-conformité, actions correctives et génération des quatre rapports PDF.
 
 En cible, ces actions passent par Prisma et PostgreSQL. En developpement, si PostgreSQL ou le moteur Prisma n'est pas disponible, l'application bascule automatiquement sur une persistance locale dans `.sentinelle/local-data.json`. Ce dossier est ignore par Git et sert uniquement a tester l'outil avant de brancher une base hebergee ou Docker.
 
@@ -64,6 +70,14 @@ Pour forcer l'usage exclusif de PostgreSQL en local :
 ```bash
 LOCAL_DATASTORE_DISABLED="true"
 ```
+
+## Installation PWA
+
+SENTINELLE peut être installée comme application sur ordinateur, tablette ou smartphone depuis la rubrique `Diffusion`.
+
+En local, ouvrir `http://localhost:3000/diffusion` avec Chrome, Edge ou Safari. Le bouton `Installer SENTINELLE` lance l'installation lorsque le navigateur expose l'événement PWA. Si le bouton d'installation natif du navigateur apparaît dans la barre d'adresse, il peut aussi être utilisé.
+
+Le service worker est actif en production et sur `localhost` pour permettre les tests d'installation. Les routes API ne sont pas mises en cache afin d'éviter d'afficher des données métier périmées.
 
 ## Prévisualisation sans dépendances
 
@@ -94,8 +108,9 @@ Le modèle Prisma couvre notamment :
 
 - `Company`, `User`, `Agent`, `Client`, `Site`, `Assignment`
 - `Control`, `ControlItemDefinition`, `ControlItemResult`
+- `ControlTemplate`, `ControlCriterion`, `ControlPoint`, `ControlPointResponseOption`, `ControlSession`, `ControlCriterionResult`, `ControlPointResult`, `ControlNonConformityLink`, `CorrectiveAction`, `ControlReport`, `ControlEvidence`, `ControlSignature`
 - `NonConformity`, `NonConformityComment`, `Evidence`
-- `Document`, `Qcm`, `QcmQuestion`, `QcmChoice`, `QcmSession`
+- `Document`, `Qcm`, `QcmBank`, `QcmQuestion`, `QcmChoice`, `QcmSession`, `QcmAnswer`, `QcmResult`, `QcmInterruption`, `QcmSetting`
 - `PlanningRequest`, `Notification`, `Report`
 - `PreventionMessage`, `MonthlySummary`, `AiInsight`, `AuditLog`, `SyncEvent`
 
@@ -110,18 +125,38 @@ npm run start        # lancement production
 npm run typecheck    # vérification TypeScript
 npm run lint         # lint
 npm run test         # tests unitaires
+npm run preflight:prod # verification minimale avant diffusion
 npm run db:migrate   # migration Prisma en développement
 npm run db:seed      # seed de démonstration
 ```
 
 ## Déploiement
 
+### Déploiement Docker
+
+```bash
+cp .env.production.example .env.production
+# Modifier les secrets, APP_URL et POSTGRES_PASSWORD
+docker compose -f docker-compose.production.yml up -d --build
+```
+
+Le compose de production lance :
+
+- l'application Next.js ;
+- PostgreSQL 16 ;
+- un volume `sentinelle-files` monté sur `/app/storage` pour les documents, preuves terrain, signatures et rapports ;
+- `LOCAL_DATASTORE_DISABLED=true` pour empêcher la persistance locale de démonstration.
+
+### Déploiement managé
+
 1. Créer une base PostgreSQL managée.
-2. Renseigner `DATABASE_URL`, `AUTH_SECRET`, `APP_URL` et `FILE_STORAGE_PATH`.
-3. Exécuter `npm run db:migrate` puis `npm run build`.
-4. Servir avec `npm run start` derrière HTTPS.
-5. Brancher un stockage objet pour les fichiers terrain et documents réglementaires.
+2. Créer un stockage fichiers persistant et renseigner `FILE_STORAGE_PATH`.
+3. Renseigner `DATABASE_URL`, `AUTH_SECRET`, `APP_URL` et `LOCAL_DATASTORE_DISABLED=true`.
+4. Exécuter `npm run preflight:prod`, `npm run db:migrate`, puis `npm run build`.
+5. Servir avec `npm run start` derrière HTTPS.
 6. Activer `AI_FEATURES_ENABLED=true` lorsque le connecteur IA réel est configuré.
+
+La production ne doit pas utiliser `.sentinelle/local-data.json`. Ce fichier reste uniquement un filet de sécurité de développement.
 
 ## Notes sécurité et conformité
 

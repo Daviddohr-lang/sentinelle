@@ -1,14 +1,32 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { Prisma, PrismaClient, Role } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { SECURITY_COMPANY_LEGAL_NOTICE } from "../lib/constants";
+import { buildInitialControlLibrary } from "../lib/control-template-library";
 
 const prisma = new PrismaClient();
 const password = "Sentinelle2026!";
+
+function withPrismaDates<T extends { createdAt: string; updatedAt: string; archivedAt?: string | null }>(record: T) {
+  return {
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+    archivedAt: record.archivedAt ? new Date(record.archivedAt) : null
+  };
+}
 
 async function main() {
   const passwordHash = await hash(password, 12);
 
   await prisma.$transaction([
+    prisma.controlSignature.deleteMany(),
+    prisma.controlEvidence.deleteMany(),
+    prisma.controlReport.deleteMany(),
+    prisma.correctiveAction.deleteMany(),
+    prisma.controlNonConformityLink.deleteMany(),
+    prisma.controlPointResult.deleteMany(),
+    prisma.controlCriterionResult.deleteMany(),
+    prisma.controlSession.deleteMany(),
     prisma.qcmAnswer.deleteMany(),
     prisma.qcmSession.deleteMany(),
     prisma.qcmChoice.deleteMany(),
@@ -32,6 +50,10 @@ async function main() {
     prisma.reportTemplate.deleteMany(),
     prisma.syncEvent.deleteMany(),
     prisma.controlItemDefinition.deleteMany(),
+    prisma.controlPointResponseOption.deleteMany(),
+    prisma.controlPoint.deleteMany(),
+    prisma.controlCriterion.deleteMany(),
+    prisma.controlTemplate.deleteMany(),
     prisma.agent.deleteMany(),
     prisma.site.deleteMany(),
     prisma.client.deleteMany(),
@@ -340,6 +362,17 @@ async function main() {
     }
   });
 
+  const controlLibrary = buildInitialControlLibrary(company.id, new Date().toISOString());
+  await prisma.controlTemplate.createMany({
+    data: controlLibrary.controlTemplates.map((template) => {
+      const record = withPrismaDates(template);
+      return { ...record, reportRules: record.reportRules ? (record.reportRules as Prisma.InputJsonValue) : undefined };
+    })
+  });
+  await prisma.controlCriterion.createMany({ data: controlLibrary.controlCriteria.map(withPrismaDates) });
+  await prisma.controlPoint.createMany({ data: controlLibrary.controlPoints.map(withPrismaDates) });
+  await prisma.controlPointResponseOption.createMany({ data: controlLibrary.controlPointResponseOptions.map(withPrismaDates) });
+
   const control = await prisma.control.create({
     data: {
       id: "ctrl_2026_05_21",
@@ -590,10 +623,24 @@ async function main() {
     ]
   });
 
-  await prisma.preventionMessage.create({
+  const preventionMessages = prisma.preventionMessage as unknown as {
+    create(input: {
+      data: {
+        companyId: string;
+        title: string;
+        theme: string;
+        body: string;
+        question: string;
+        expectedAnswer: string;
+      };
+    }): Promise<unknown>;
+  };
+
+  await preventionMessages.create({
     data: {
       companyId: company.id,
       title: "Prevention du jour",
+      theme: "Traçabilité",
       body: "La vigilance active commence par une posture visible, une main courante tenue en temps reel et une alerte remontee sans delai.",
       question: "Quel document doit tracer les evenements importants du poste ?",
       expectedAnswer: "main courante"

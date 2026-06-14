@@ -1,7 +1,6 @@
-import { readFile } from "fs/promises";
-import path from "path";
 import type { NextRequest } from "next/server";
 import { apiError, requireApiUser } from "@/lib/api";
+import { readManagedFile } from "@/lib/storage";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const context = await requireApiUser(request, "documents.read");
@@ -9,23 +8,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!context.user.companyId) return apiError("Entreprise requise", 400);
 
   const { id } = await params;
-  const storageRoot = path.resolve(process.env.FILE_STORAGE_PATH ?? "./storage");
-  const companyRoot = path.join(storageRoot, context.user.companyId);
-  const matches = ["document", "evidence", "signature", "report"].map((scope) => path.join(companyRoot, scope, id));
-
-  for (const candidate of matches) {
-    try {
-      if (!candidate.startsWith(companyRoot)) continue;
-      const file = await readFile(candidate);
-      return new Response(file, {
-        headers: {
-          "content-type": "application/octet-stream",
-          "content-disposition": `attachment; filename="${id.replace(/"/g, "")}"`
-        }
-      });
-    } catch {
-      // Continue avec les autres scopes autorises.
-    }
+  const file = await readManagedFile({ companyId: context.user.companyId, id });
+  if (file) {
+    return new Response(file.buffer, {
+      headers: {
+        "content-type": file.mimeType,
+        "content-disposition": `attachment; filename="${file.fileName.replace(/"/g, "")}"`
+      }
+    });
   }
 
   return apiError("Fichier introuvable", 404);

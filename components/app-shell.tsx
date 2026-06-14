@@ -20,8 +20,8 @@ export function AppShell({ user, companyProfile, children }: { user: SessionUser
   const visibleNavItems = navItems.filter((item) => {
     if (user.role === "SUPER_ADMIN" || user.role === "COMPANY_ADMIN") return true;
     if (user.role === "QUALITY_CONTROLLER") return !["/admin"].includes(item.href);
-    if (user.role === "BUSINESS_OWNER") return !["/admin", "/qcm"].includes(item.href);
-    if (user.role === "AGENT") return ["/", "/controles", "/qcm", "/documents", "/recherche", "/parametres", "/parametres#messages"].includes(item.href);
+    if (user.role === "BUSINESS_OWNER") return !["/admin", "/qcm", "/criteres-controle"].includes(item.href);
+    if (user.role === "AGENT") return ["/", "/controles", "/qcm", "/documents", "/recherche", "/parametres", "/prevention"].includes(item.href);
     if (user.role === "CLIENT") return ["/", "/planning", "/rapports", "/statistiques", "/documents", "/recherche", "/parametres"].includes(item.href);
     return false;
   });
@@ -86,7 +86,7 @@ export function AppShell({ user, companyProfile, children }: { user: SessionUser
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
-          const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href.replace("#messages", ""));
+          const active = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={`${item.href}-${item.label}`}

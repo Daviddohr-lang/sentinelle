@@ -7,7 +7,9 @@ import {
   FileText,
   FolderLock,
   LayoutDashboard,
+  ListChecks,
   MessagesSquare,
+  Rocket,
   Search,
   Settings,
   ShieldCheck,
@@ -65,6 +67,7 @@ export const blockingItems = [
 export const navItems = [
   { href: "/", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/controles", label: "Controles", icon: ClipboardCheck },
+  { href: "/criteres-controle", label: "Criteres controle", icon: ListChecks },
   { href: "/non-conformites", label: "Non-conformites", icon: ShieldCheck },
   { href: "/qcm", label: "QCM agents", icon: UserRoundCheck },
   { href: "/documents", label: "Documents", icon: FolderLock },
@@ -75,8 +78,9 @@ export const navItems = [
   { href: "/clients-sites", label: "Clients & sites", icon: Building2 },
   { href: "/recherche", label: "Recherche", icon: Search },
   { href: "/admin", label: "Administration", icon: Settings },
+  { href: "/diffusion", label: "Diffusion", icon: Rocket },
   { href: "/parametres", label: "Parametres", icon: Bell },
-  { href: "/parametres#messages", label: "Prevention", icon: MessagesSquare }
+  { href: "/prevention", label: "Prevention", icon: MessagesSquare }
 ];
 
 export const demoCredentials = [

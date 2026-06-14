@@ -74,6 +74,20 @@ enum Requirement {
   REQUIRED
 }
 
+enum ControlPointStatus {
+  CONFORME
+  NON_CONFORME
+  SANS_OBJET
+}
+
+enum ControlImpactLevel {
+  VERT
+  JAUNE
+  ORANGE
+  ROUGE
+  CRITIQUE
+}
+
 enum NonConformityStatus {
   OUVERTE
   EN_COURS
@@ -125,17 +139,36 @@ enum QcmType {
   CLIENT
 }
 
+enum QcmBankType {
+  ENTREPRISE
+  METIER
+  CLIENT_SITE
+}
+
 enum QuestionType {
   CHOIX_UNIQUE
   CHOIX_MULTIPLE
+}
+
+enum QcmDifficulty {
+  FACILE
+  MOYEN
+  DIFFICILE
 }
 
 enum QcmSessionStatus {
   ENVOYE
   EN_COURS
   TERMINE
+  INTERROMPU
   EXPIRE
   ANNULE
+}
+
+enum QcmLaunchTiming {
+  PENDANT_CONTROLE
+  FIN_CONTROLE
+  APRES_CONTROLE
 }
 
 enum PlanningStatus {
@@ -163,6 +196,8 @@ enum NotificationType {
 enum ReportType {
   COMPLET_INTERNE
   SIMPLIFIE_CLIENT
+  RAPPORT_AGENT
+  RAPPORT_DIRECTION
   SYNTHESE_MENSUELLE
 }
 
@@ -220,7 +255,9 @@ model Company {
   evidences                Evidence[]
   documents                Document[]
   qcms                     Qcm[]
+  qcmBanks                 QcmBank[]
   qcmSessions              QcmSession[]
+  qcmSettings              QcmSetting[]
   planningRequests         PlanningRequest[]
   notifications            Notification[]
   reports                  Report[]
@@ -230,6 +267,12 @@ model Company {
   auditLogs                AuditLog[]
   reportTemplates          ReportTemplate[]
   syncEvents               SyncEvent[]
+  controlTemplates         ControlTemplate[]
+  controlSessions          ControlSession[]
+  correctiveActions        CorrectiveAction[]
+  controlReports           ControlReport[]
+  controlEvidences         ControlEvidence[]
+  controlSignatures        ControlSignature[]
 }
 
 model User {
@@ -286,6 +329,8 @@ model Client {
   nonConformities NonConformity[]
   documents       Document[]
   qcms            Qcm[]
+  qcmBanks        QcmBank[]
+  dynamicControlSessions ControlSession[]
 
   @@unique([companyId, reference])
   @@index([companyId])
@@ -314,6 +359,8 @@ model Site {
   nonConformities NonConformity[]
   documents       Document[]
   qcms            Qcm[]
+  qcmBanks        QcmBank[]
+  dynamicControlSessions ControlSession[]
 
   @@unique([companyId, reference])
   @@index([companyId, clientId])
@@ -351,6 +398,7 @@ model Agent {
   assignments               Assignment[]
   planningRequests          PlanningRequest[]
   controls                  Control[]
+  dynamicControlSessions    ControlSession[]
   nonConformities           NonConformity[]
   documents                 Document[]
   qcmSessions               QcmSession[]
@@ -442,9 +490,266 @@ model Control {
   nonConformities   NonConformity[]
   qcmSessions       QcmSession[]
   reports           Report[]
+  dynamicSession    ControlSession?
 
   @@index([companyId, startedAt])
   @@index([companyId, status])
+}
+
+model ControlTemplate {
+  id          String             @id @default(cuid())
+  companyId   String
+  title       String
+  description String?
+  version     Int                @default(1)
+  active      Boolean            @default(true)
+  reportRules Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  archivedAt  DateTime?
+  company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  criteria    ControlCriterion[]
+  sessions    ControlSession[]
+
+  @@index([companyId, active])
+}
+
+model ControlCriterion {
+  id          String              @id @default(cuid())
+  companyId   String
+  templateId  String
+  label       String
+  description String?
+  coefficient Float               @default(1)
+  sortOrder   Int                 @default(0)
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  archivedAt  DateTime?
+  template    ControlTemplate     @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  points      ControlPoint[]
+  results     ControlCriterionResult[]
+  pointResults ControlPointResult[]
+
+  @@index([companyId, templateId, sortOrder])
+}
+
+model ControlPoint {
+  id                       String                       @id @default(cuid())
+  companyId                String
+  criterionId              String
+  label                    String
+  description              String?
+  coefficient              Float                        @default(1)
+  defaultSeverity          Severity                     @default(MINEURE)
+  blocking                 Boolean                      @default(false)
+  defaultCorrectiveAction  String?
+  defaultCorrectionDelayHours Int?
+  photoRequirement         Requirement                  @default(OPTIONAL)
+  fileRequirement          Requirement                  @default(NONE)
+  voiceRequirement         Requirement                  @default(OPTIONAL)
+  visibleInAgentReport     Boolean                      @default(true)
+  visibleInDirectionReport Boolean                      @default(true)
+  visibleInClientReport    Boolean                      @default(true)
+  sortOrder                Int                          @default(0)
+  active                   Boolean                      @default(true)
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  archivedAt               DateTime?
+  criterion                ControlCriterion             @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  responseOptions          ControlPointResponseOption[]
+  results                  ControlPointResult[]
+
+  @@index([companyId, criterionId, sortOrder])
+}
+
+model ControlPointResponseOption {
+  id                       String             @id @default(cuid())
+  companyId                String
+  pointId                  String
+  status                   ControlPointStatus
+  label                    String
+  impactLevel              ControlImpactLevel @default(VERT)
+  severity                 Severity           @default(MINEURE)
+  score                    Int                @default(100)
+  affectsScore             Boolean            @default(true)
+  affectsCompliance        Boolean            @default(true)
+  correctiveAction         String?
+  correctionDelayHours     Int?
+  blocking                 Boolean            @default(false)
+  notificationRequired     Boolean            @default(false)
+  visibleInAgentReport     Boolean            @default(true)
+  visibleInDirectionReport Boolean            @default(true)
+  visibleInClientReport    Boolean            @default(true)
+  sortOrder                Int                @default(0)
+  active                   Boolean            @default(true)
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  archivedAt               DateTime?
+  point                    ControlPoint       @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  results                  ControlPointResult[]
+
+  @@index([companyId, pointId, status])
+}
+
+model ControlSession {
+  id              String                   @id @default(cuid())
+  companyId       String
+  controlId       String?                  @unique
+  templateId      String
+  agentId         String
+  clientId        String
+  siteId          String
+  type            ControlType              @default(INOPINE)
+  status          ControlStatus            @default(BROUILLON)
+  selectedCriterionIds String[]
+  globalScore     Float                    @default(0)
+  complianceLevel String?
+  startedAt       DateTime                 @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  archivedAt      DateTime?
+  metadata        Json?
+  company         Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  control         Control?                 @relation(fields: [controlId], references: [id], onDelete: SetNull)
+  template        ControlTemplate          @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  agent           Agent                    @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  client          Client                   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  site            Site                     @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  criterionResults ControlCriterionResult[]
+  pointResults    ControlPointResult[]
+  correctiveActions CorrectiveAction[]
+  reports         ControlReport[]
+  evidences       ControlEvidence[]
+  signatures      ControlSignature[]
+
+  @@index([companyId, status, startedAt])
+  @@index([agentId, startedAt])
+  @@index([siteId, startedAt])
+}
+
+model ControlCriterionResult {
+  id          String           @id @default(cuid())
+  sessionId   String
+  criterionId String
+  score       Float            @default(0)
+  comment     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  session     ControlSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  criterion   ControlCriterion @relation(fields: [criterionId], references: [id], onDelete: Restrict)
+  pointResults ControlPointResult[]
+
+  @@unique([sessionId, criterionId])
+}
+
+model ControlPointResult {
+  id                 String                     @id @default(cuid())
+  sessionId          String
+  criterionResultId  String?
+  criterionId        String
+  pointId            String
+  responseOptionId   String
+  status             ControlPointStatus
+  score              Int
+  impactLevel        ControlImpactLevel
+  severity           Severity
+  blockingTriggered  Boolean                    @default(false)
+  observation        String?
+  correctiveAction   String?
+  correctionDelayHours Int?
+  reportVisibility   Json?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  session            ControlSession             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  criterionResult    ControlCriterionResult?    @relation(fields: [criterionResultId], references: [id], onDelete: SetNull)
+  criterion          ControlCriterion           @relation(fields: [criterionId], references: [id], onDelete: Restrict)
+  point              ControlPoint               @relation(fields: [pointId], references: [id], onDelete: Restrict)
+  responseOption     ControlPointResponseOption @relation(fields: [responseOptionId], references: [id], onDelete: Restrict)
+  nonConformityLink  ControlNonConformityLink?
+  evidences          ControlEvidence[]
+
+  @@unique([sessionId, pointId])
+  @@index([sessionId, status])
+}
+
+model ControlNonConformityLink {
+  id              String             @id @default(cuid())
+  pointResultId   String             @unique
+  nonConformityId String
+  createdAt       DateTime           @default(now())
+  pointResult     ControlPointResult @relation(fields: [pointResultId], references: [id], onDelete: Cascade)
+  nonConformity   NonConformity      @relation(fields: [nonConformityId], references: [id], onDelete: Cascade)
+}
+
+model CorrectiveAction {
+  id              String       @id @default(cuid())
+  companyId       String
+  sessionId       String?
+  nonConformityId String?
+  title           String
+  description     String?
+  severity        Severity     @default(MINEURE)
+  dueAt           DateTime?
+  status          NonConformityStatus @default(OUVERTE)
+  assignedToId    String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  closedAt        DateTime?
+  archivedAt      DateTime?
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session         ControlSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  nonConformity   NonConformity? @relation(fields: [nonConformityId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status, dueAt])
+}
+
+model ControlReport {
+  id          String        @id @default(cuid())
+  companyId   String
+  sessionId   String
+  type        ReportType
+  title       String
+  fileUrl     String?
+  payload     Json?
+  createdAt   DateTime      @default(now())
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session     ControlSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, type, createdAt])
+}
+
+model ControlEvidence {
+  id             String       @id @default(cuid())
+  companyId      String
+  sessionId      String
+  pointResultId  String?
+  type           EvidenceType
+  fileName       String?
+  fileUrl        String?
+  mimeType       String?
+  required       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  company        Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session        ControlSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  pointResult    ControlPointResult? @relation(fields: [pointResultId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, sessionId])
+}
+
+model ControlSignature {
+  id          String       @id @default(cuid())
+  companyId   String
+  sessionId   String
+  role        String
+  signerName  String?
+  dataUrl     String
+  signedAt    DateTime     @default(now())
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session     ControlSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, sessionId])
 }
 
 model ControlItemResult {
@@ -499,6 +804,8 @@ model NonConformity {
   validatedBy      User?                   @relation("NonConformityValidator", fields: [validatedById], references: [id], onDelete: SetNull)
   evidences        Evidence[]
   comments         NonConformityComment[]
+  controlLinks     ControlNonConformityLink[]
+  correctiveActions CorrectiveAction[]
 
   @@index([companyId, severity])
   @@index([companyId, status])
@@ -593,17 +900,60 @@ model Qcm {
   @@index([companyId, type])
 }
 
+model QcmBank {
+  id                     String           @id @default(cuid())
+  companyId              String
+  type                   QcmBankType
+  title                  String
+  description            String?
+  coefficient            Int
+  qualification          String?
+  clientId               String?
+  siteId                 String?
+  questionCountPerSession Int             @default(10)
+  timePerQuestionSeconds Int              @default(60)
+  passingScore           Int              @default(80)
+  active                 Boolean          @default(true)
+  guidanceTitle          String?
+  guidanceBody           String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  archivedAt             DateTime?
+  company                Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client                 Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  site                   Site?            @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  questions              QcmQuestion[]    @relation("QcmBankQuestions")
+  sessions               QcmSession[]     @relation("QcmBankSessions")
+
+  @@index([companyId, type])
+  @@index([companyId, qualification])
+  @@index([companyId, clientId, siteId])
+}
+
 model QcmQuestion {
   id          String       @id @default(cuid())
-  qcmId       String
+  companyId   String?
+  qcmId       String?
+  bankId      String?
   label       String
   type        QuestionType @default(CHOIX_UNIQUE)
+  category    String?
+  qualification String?
+  clientId    String?
+  siteId      String?
   sortOrder   Int          @default(0)
   points      Int          @default(1)
   explanation String?
-  qcm         Qcm          @relation(fields: [qcmId], references: [id], onDelete: Cascade)
+  active      Boolean      @default(true)
+  difficulty  QcmDifficulty?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  qcm         Qcm?         @relation(fields: [qcmId], references: [id], onDelete: Cascade)
+  bank        QcmBank?     @relation("QcmBankQuestions", fields: [bankId], references: [id], onDelete: Cascade)
   choices     QcmChoice[]
   answers     QcmAnswer[]
+
+  @@index([companyId, bankId, active])
 }
 
 model QcmChoice {
@@ -617,26 +967,43 @@ model QcmChoice {
 model QcmSession {
   id          String           @id @default(cuid())
   companyId   String
-  qcmId       String
+  qcmId       String?
+  bankId      String?
   controlId   String?
   agentId     String
+  clientId    String?
+  siteId      String?
+  qualification String?
+  launchTiming QcmLaunchTiming?
+  availableAt DateTime?
   status      QcmSessionStatus @default(ENVOYE)
   score       Float?
   passed      Boolean?
+  weightedScore Float?
+  questionIds String[]         @default([])
+  currentQuestionIndex Int     @default(0)
+  resumeAllowed Boolean        @default(false)
+  resumeCount  Int             @default(0)
+  interruptionReason String?
   startedAt   DateTime?
+  interruptedAt DateTime?
   completedAt DateTime?
   sentById    String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  qcm         Qcm              @relation(fields: [qcmId], references: [id], onDelete: Cascade)
+  qcm         Qcm?             @relation(fields: [qcmId], references: [id], onDelete: Cascade)
+  bank        QcmBank?         @relation("QcmBankSessions", fields: [bankId], references: [id], onDelete: Cascade)
   control     Control?         @relation(fields: [controlId], references: [id], onDelete: SetNull)
   agent       Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
   sentBy      User?            @relation("QcmSessionSender", fields: [sentById], references: [id], onDelete: SetNull)
   answers     QcmAnswer[]
+  result      QcmResult?
+  interruptions QcmInterruption[]
 
   @@index([companyId, status])
   @@index([agentId])
+  @@index([companyId, controlId])
 }
 
 model QcmAnswer {
@@ -645,10 +1012,63 @@ model QcmAnswer {
   questionId        String
   selectedChoiceIds String[]
   isCorrect         Boolean     @default(false)
+  timedOut          Boolean     @default(false)
+  timeSpentSeconds  Int?
   pointsAwarded     Int         @default(0)
   createdAt         DateTime    @default(now())
   session           QcmSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   question          QcmQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, questionId])
+}
+
+model QcmResult {
+  id               String     @id @default(cuid())
+  sessionId        String     @unique
+  companyId        String
+  score            Float
+  passed           Boolean
+  weightedScore    Float?
+  correctAnswers   Int
+  totalQuestions   Int
+  timedOutQuestions Int       @default(0)
+  interruptionCount Int       @default(0)
+  details          Json?
+  createdAt        DateTime   @default(now())
+  session          QcmSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+}
+
+model QcmInterruption {
+  id             String     @id @default(cuid())
+  sessionId      String
+  cause          String
+  interruptedAt  DateTime   @default(now())
+  resumedAt      DateTime?
+  authorizedById String?
+  metadata       Json?
+  session        QcmSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, interruptedAt])
+}
+
+model QcmSetting {
+  id                     String      @id @default(cuid())
+  companyId              String
+  type                   QcmBankType?
+  questionCountPerSession Int        @default(10)
+  timePerQuestionSeconds Int         @default(60)
+  passingScore           Int         @default(80)
+  companyCoefficient     Int         @default(1)
+  jobCoefficient         Int         @default(2)
+  clientSiteCoefficient  Int         @default(3)
+  postControlDelayHours  Int?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  company                Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, type])
 }
 
 model PlanningRequest {
@@ -719,6 +1139,7 @@ model PreventionMessage {
   id              String                       @id @default(cuid())
   companyId       String?
   title           String
+  theme           String?
   body            String
   question        String
   expectedAnswer  String

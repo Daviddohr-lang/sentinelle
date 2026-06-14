@@ -1,5 +1,5 @@
-const CACHE_NAME = "sentinelle-v1";
-const APP_SHELL = ["/", "/login", "/manifest.json", "/favicon.svg"];
+const CACHE_NAME = "sentinelle-v2";
+const APP_SHELL = ["/", "/login", "/offline.html", "/manifest.json", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -18,13 +18,24 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.match(request).then((cached) => cached || caches.match("/offline.html"))));
+    return;
+  }
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        return response;
-      })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+    caches.match(request).then(
+      (cached) =>
+        cached ||
+        fetch(request).then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+    )
   );
 });

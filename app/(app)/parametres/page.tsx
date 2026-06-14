@@ -1,6 +1,6 @@
-import { BellRing, Bot, DatabaseZap, Moon, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { BellRing, Bot, DatabaseZap, MessagesSquare, Moon, Rocket } from "lucide-react";
 import { PageHeader, Section, StatCard } from "@/components/ui";
-import { demoPrevention } from "@/lib/demo-data";
 
 export default function SettingsPage() {
   return (
@@ -37,18 +37,16 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Messages de prévention" action={<span id="messages" />}>
-        <div className="surface rounded-lg p-5">
-          <div className="flex items-start gap-3">
-            <span className="rounded-lg bg-sentinel-50 p-2 text-sentinel-700 dark:bg-sentinel-500/15 dark:text-sentinel-100">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-ink-950 dark:text-white">{demoPrevention.title}</p>
-              <p className="mt-2 text-sm leading-6 text-ink-500 dark:text-ink-300">{demoPrevention.body}</p>
-              <p className="mt-4 text-sm font-medium text-ink-700 dark:text-ink-200">{demoPrevention.question}</p>
-            </div>
+      <Section title="Messages de prévention">
+        <div className="surface flex flex-col gap-4 rounded-lg p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ink-950 dark:text-white">Bibliothèque de prévention</p>
+            <p className="mt-2 text-sm leading-6 text-ink-500 dark:text-ink-300">Les messages agents, questions de validation et thématiques sont maintenant gérés dans un espace dédié.</p>
           </div>
+          <Link href="/prevention" className="button-primary">
+            <MessagesSquare className="h-4 w-4" />
+            Ouvrir prévention
+          </Link>
         </div>
       </Section>
 
@@ -57,6 +55,19 @@ export default function SettingsPage() {
           <p className="text-sm leading-6 text-ink-600 dark:text-ink-300">
             Les contrôles terrain peuvent être mis en file locale lorsque le réseau est absent. L&apos;API /api/sync stocke les événements pour réconciliation et audit au retour réseau.
           </p>
+        </div>
+      </Section>
+
+      <Section title="Diffusion et installation">
+        <div className="surface flex flex-col gap-4 rounded-lg p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ink-950 dark:text-white">Application installable</p>
+            <p className="mt-2 text-sm leading-6 text-ink-500 dark:text-ink-300">Préparation PWA, stockage persistant, PostgreSQL et commandes de déploiement.</p>
+          </div>
+          <Link href="/diffusion" className="button-primary">
+            <Rocket className="h-4 w-4" />
+            Ouvrir diffusion
+          </Link>
         </div>
       </Section>
     </div>

@@ -1,7 +1,8 @@
-import { Bell, Building2, ListChecks, Lock, Settings, Users } from "lucide-react";
+import { Bell, Building2, ListChecks, Lock, Rocket, Settings, Users } from "lucide-react";
+import Link from "next/link";
 import { Badge, DataTable, PageHeader, Section, StatCard } from "@/components/ui";
 import { CompanyIdentityManager } from "@/components/company-identity-manager";
-import { demoClients, demoControlItems, demoUsers } from "@/lib/demo-data";
+import { demoClients, demoUsers } from "@/lib/demo-data";
 import { roleLabels } from "@/lib/constants";
 import { getSessionFromCookies } from "@/lib/auth";
 import { getShellCompanyProfile } from "@/lib/company-profile";
@@ -28,7 +29,7 @@ export default async function AdminPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Entreprise" value={companyProfile.name} trend={companyProfile.cnapsAuthorizationNumber ?? "CNAPS non renseigne"} icon={Building2} />
         <StatCard label="Utilisateurs" value={demoUsers.length} trend="6 rôles métiers" icon={Users} />
-        <StatCard label="Items actifs" value={demoControlItems.length} trend="Personnalisables" icon={ListChecks} />
+        <StatCard label="Référentiel OPS" value="80" trend="12 thématiques dynamiques" icon={ListChecks} />
         <StatCard label="Alertes" value="9" trend="Documents et terrain" icon={Bell} />
       </div>
 
@@ -49,21 +50,19 @@ export default async function AdminPage() {
         />
       </Section>
 
-      <Section title="Items de contrôle">
-        <DataTable
-          columns={["Libellé", "Catégorie", "Gravité", "Coefficient", "Bloquant", "Notification", "Client"]}
-          rows={demoControlItems.map((item) => [
-            item.label,
-            item.category,
-            <Badge key={`${item.id}-severity`} tone="severity">
-              {item.severity}
-            </Badge>,
-            item.coefficient,
-            item.blocking ? "Oui" : "Non",
-            item.autoNotify ? "Automatique" : "Manuelle",
-            item.clientVisible ? "Visible" : "Interne"
-          ])}
-        />
+      <Section title="Critères de contrôle qualité">
+        <div className="surface flex flex-col gap-4 rounded-lg p-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ink-950 dark:text-white">Rubrique métier dédiée</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-500 dark:text-ink-300">
+              Le référentiel des contrôles se gère maintenant dans une rubrique séparée : thématiques, points à contrôler, choix de réponse, incidences, notes, non-conformités et rapports.
+            </p>
+          </div>
+          <Link href="/criteres-controle" className="button-primary">
+            <ListChecks className="h-4 w-4" />
+            Ouvrir les critères
+          </Link>
+        </div>
       </Section>
 
       <Section title="Référentiels modifiables">
@@ -82,6 +81,21 @@ export default async function AdminPage() {
               </div>
             );
           })}
+        </div>
+      </Section>
+
+      <Section title="Diffusion et hébergement">
+        <div className="surface flex flex-col gap-4 rounded-lg p-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ink-950 dark:text-white">Installation PWA et préparation production</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-500 dark:text-ink-300">
+              Cette rubrique centralise l’installation de SENTINELLE sur les postes, la vérification PostgreSQL, le stockage fichiers persistant et les commandes Docker.
+            </p>
+          </div>
+          <Link href="/diffusion" className="button-primary">
+            <Rocket className="h-4 w-4" />
+            Préparer la diffusion
+          </Link>
         </div>
       </Section>
     </div>
