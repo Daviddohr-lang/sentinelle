@@ -10,7 +10,7 @@ services:
     healthCheckPath: /login
     autoDeployTrigger: commit
     preDeployCommand: npx prisma migrate deploy
-    initialDeployHook: npx prisma db seed
+    initialDeployHook: node scripts/seed-if-empty.mjs
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -36,6 +36,10 @@ services:
         value: "false"
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+      - key: RUN_MIGRATIONS_ON_START
+        value: "true"
+      - key: BOOTSTRAP_SEED_ON_START
+        value: "true"
     disk:
       name: sentinelle-files
       mountPath: /app/storage
