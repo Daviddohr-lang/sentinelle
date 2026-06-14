@@ -25,11 +25,13 @@ RUN apk add --no-cache libc6-compat openssl \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/package.json /app/package-lock.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
-RUN mkdir -p /app/storage && chown -R nextjs:nodejs /app/storage
+RUN npx prisma generate \
+  && mkdir -p /app/storage \
+  && chown -R nextjs:nodejs /app/storage
 
 USER nextjs
 EXPOSE 3000
