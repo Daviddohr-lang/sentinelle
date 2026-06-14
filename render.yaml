@@ -40,6 +40,8 @@ services:
         value: "true"
       - key: BOOTSTRAP_SEED_ON_START
         value: "true"
+      - key: SEED_PROFILE
+        value: minimal
     disk:
       name: sentinelle-files
       mountPath: /app/storage
