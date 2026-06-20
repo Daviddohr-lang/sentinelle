@@ -1,4 +1,4 @@
-import { Bell, Building2, ListChecks, Lock, Rocket, Settings, Users } from "lucide-react";
+import { Bell, Building2, FileSpreadsheet, ListChecks, Lock, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { Badge, DataTable, PageHeader, Section, StatCard } from "@/components/ui";
 import { CompanyIdentityManager } from "@/components/company-identity-manager";
@@ -84,17 +84,17 @@ export default async function AdminPage() {
         </div>
       </Section>
 
-      <Section title="Diffusion et hébergement">
+      <Section title="Imports Excel">
         <div className="surface flex flex-col gap-4 rounded-lg p-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-ink-950 dark:text-white">Installation PWA et préparation production</p>
+            <p className="text-sm font-semibold text-ink-950 dark:text-white">Modèles standards et import contrôlé</p>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-500 dark:text-ink-300">
-              Cette rubrique centralise l’installation de SENTINELLE sur les postes, la vérification PostgreSQL, le stockage fichiers persistant et les commandes Docker.
+              Importez agents, clients, sites, QCM et points de contrôle depuis des fichiers Excel, avec prévisualisation, détection des erreurs et choix sur les doublons.
             </p>
           </div>
-          <Link href="/diffusion" className="button-primary">
-            <Rocket className="h-4 w-4" />
-            Préparer la diffusion
+          <Link href="/imports" className="button-primary">
+            <FileSpreadsheet className="h-4 w-4" />
+            Ouvrir les imports
           </Link>
         </div>
       </Section>

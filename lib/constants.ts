@@ -6,10 +6,10 @@ import {
   ClipboardCheck,
   FileText,
   FolderLock,
+  FileSpreadsheet,
   LayoutDashboard,
   ListChecks,
   MessagesSquare,
-  Rocket,
   Search,
   Settings,
   ShieldCheck,
@@ -78,7 +78,7 @@ export const navItems = [
   { href: "/clients-sites", label: "Clients & sites", icon: Building2 },
   { href: "/recherche", label: "Recherche", icon: Search },
   { href: "/admin", label: "Administration", icon: Settings },
-  { href: "/diffusion", label: "Diffusion", icon: Rocket },
+  { href: "/imports", label: "Imports Excel", icon: FileSpreadsheet },
   { href: "/parametres", label: "Parametres", icon: Bell },
   { href: "/prevention", label: "Prevention", icon: MessagesSquare }
 ];

@@ -19,8 +19,8 @@ export function AppShell({ user, companyProfile, children }: { user: SessionUser
   const [open, setOpen] = useState(false);
   const visibleNavItems = navItems.filter((item) => {
     if (user.role === "SUPER_ADMIN" || user.role === "COMPANY_ADMIN") return true;
-    if (user.role === "QUALITY_CONTROLLER") return !["/admin"].includes(item.href);
-    if (user.role === "BUSINESS_OWNER") return !["/admin", "/qcm", "/criteres-controle"].includes(item.href);
+    if (user.role === "QUALITY_CONTROLLER") return !["/admin", "/imports"].includes(item.href);
+    if (user.role === "BUSINESS_OWNER") return !["/admin", "/imports", "/qcm", "/criteres-controle"].includes(item.href);
     if (user.role === "AGENT") return ["/", "/controles", "/qcm", "/documents", "/recherche", "/parametres", "/prevention"].includes(item.href);
     if (user.role === "CLIENT") return ["/", "/planning", "/rapports", "/statistiques", "/documents", "/recherche", "/parametres"].includes(item.href);
     return false;
