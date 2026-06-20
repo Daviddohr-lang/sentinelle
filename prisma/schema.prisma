@@ -40,6 +40,14 @@ enum UserStatus {
   ARCHIVED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+  FAILED
+}
+
 enum AssignmentStatus {
   ACTIVE
   PLANNED
@@ -265,6 +273,7 @@ model Company {
   monthlySummaries         MonthlySummary[]
   aiInsights               AiInsight[]
   auditLogs                AuditLog[]
+  userInvitations          UserInvitation[]
   reportTemplates          ReportTemplate[]
   syncEvents               SyncEvent[]
   controlTemplates         ControlTemplate[]
@@ -305,6 +314,34 @@ model User {
   reportsGenerated           Report[]                     @relation("ReportGenerator")
   preventionAcknowledgements PreventionAcknowledgement[]
   auditLogs                  AuditLog[]
+  invitationsSent            UserInvitation[]             @relation("InvitationInviter")
+  invitationsAccepted        UserInvitation[]             @relation("InvitationAcceptedUser")
+}
+
+model UserInvitation {
+  id             String           @id @default(cuid())
+  companyId      String?
+  email          String
+  firstName      String
+  lastName       String
+  role           Role
+  tokenHash      String           @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  invitedById    String?
+  createdUserId  String?
+  lastEmailError String?
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  company        Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedBy      User?            @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  createdUser    User?            @relation("InvitationAcceptedUser", fields: [createdUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status, createdAt])
+  @@index([email])
 }
 
 model Client {

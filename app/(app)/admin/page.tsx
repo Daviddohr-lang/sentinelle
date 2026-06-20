@@ -1,9 +1,9 @@
 import { Bell, Building2, FileSpreadsheet, ListChecks, Lock, Settings, Users } from "lucide-react";
 import Link from "next/link";
-import { Badge, DataTable, PageHeader, Section, StatCard } from "@/components/ui";
+import { PageHeader, Section, StatCard } from "@/components/ui";
 import { CompanyIdentityManager } from "@/components/company-identity-manager";
-import { demoClients, demoUsers } from "@/lib/demo-data";
-import { roleLabels } from "@/lib/constants";
+import { UsersInvitationsManager } from "@/components/users-invitations-manager";
+import { demoClients } from "@/lib/demo-data";
 import { getSessionFromCookies } from "@/lib/auth";
 import { getShellCompanyProfile } from "@/lib/company-profile";
 import { hasPermission } from "@/lib/rbac";
@@ -28,7 +28,7 @@ export default async function AdminPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Entreprise" value={companyProfile.name} trend={companyProfile.cnapsAuthorizationNumber ?? "CNAPS non renseigne"} icon={Building2} />
-        <StatCard label="Utilisateurs" value={demoUsers.length} trend="6 rôles métiers" icon={Users} />
+        <StatCard label="Utilisateurs" value="Gestion" trend="Invitations et rôles" icon={Users} />
         <StatCard label="Référentiel OPS" value="80" trend="12 thématiques dynamiques" icon={ListChecks} />
         <StatCard label="Alertes" value="9" trend="Documents et terrain" icon={Bell} />
       </div>
@@ -38,16 +38,7 @@ export default async function AdminPage() {
       </Section>
 
       <Section title="Utilisateurs et permissions">
-        <DataTable
-          columns={["Nom", "Email", "Rôle", "Entreprise", "Statut"]}
-          rows={demoUsers.map((user) => [
-            `${user.firstName} ${user.lastName}`,
-            user.email,
-            roleLabels[user.role],
-            user.companyId ?? "Plateforme",
-            <Badge key={user.id}>ACTIVE</Badge>
-          ])}
-        />
+        <UsersInvitationsManager currentUserRole={user.role} />
       </Section>
 
       <Section title="Critères de contrôle qualité">

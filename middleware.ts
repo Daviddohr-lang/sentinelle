@@ -3,6 +3,7 @@ import { sessionCookieName, verifySession } from "@/lib/auth";
 
 const publicPaths = [
   "/login",
+  "/invitation",
   "/manifest.json",
   "/sw.js",
   "/favicon.svg"

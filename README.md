@@ -152,9 +152,11 @@ Le compose de production lance :
 1. Créer une base PostgreSQL managée.
 2. Créer un stockage fichiers persistant et renseigner `FILE_STORAGE_PATH`.
 3. Renseigner `DATABASE_URL`, `AUTH_SECRET`, `APP_URL` et `LOCAL_DATASTORE_DISABLED=true`.
-4. Exécuter `npm run preflight:prod`, `npm run db:migrate`, puis `npm run build`.
-5. Servir avec `npm run start` derrière HTTPS.
-6. Activer `AI_FEATURES_ENABLED=true` lorsque le connecteur IA réel est configuré.
+4. Pour les invitations email, renseigner `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` et `SMTP_FROM`.
+   Avec iCloud, utiliser un mot de passe d'application Apple, jamais le mot de passe principal du compte.
+5. Exécuter `npm run preflight:prod`, `npm run db:migrate`, puis `npm run build`.
+6. Servir avec `npm run start` derrière HTTPS.
+7. Activer `AI_FEATURES_ENABLED=true` lorsque le connecteur IA réel est configuré.
 
 La production ne doit pas utiliser `.sentinelle/local-data.json`. Ce fichier reste uniquement un filet de sécurité de développement.
 
